@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  init.cpp                                                             */
+/*  init_gdnative.cpp                                                    */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -71,7 +71,7 @@ godot_error create_peer_connection_wp(godot_object *out) {
 }
 
 godot_net_webrtc_library library = {
-	{ 3, 4 },
+	{ 3, 2 },
 	&unregistered,
 	&create_peer_connection_wp,
 	NULL,

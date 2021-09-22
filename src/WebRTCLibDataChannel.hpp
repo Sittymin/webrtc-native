@@ -31,19 +31,27 @@
 #ifndef WEBRTC_DATA_CHANNEL_H
 #define WEBRTC_DATA_CHANNEL_H
 
+#ifdef GDNATIVE_WEBRTC
+#include "net/WebRTCDataChannelNative.hpp"
 #include <Godot.hpp> // Godot.hpp must go first, or windows builds breaks
+#undef GDCLASS
+#define GDCLASS(arg1, arg2) GODOT_CLASS(WebRTCLibDataChannel, WebRTCDataChannelNative);
+namespace godot {
+using WebRTCDataChannelExtension = WebRTCDataChannelNative;
+};
+#else
+#include <godot_cpp/classes/web_rtc_data_channel_extension.hpp>
+#endif
 
 #include "api/peer_connection_interface.h" // interface for all things needed from WebRTC
 #include "media/base/media_engine.h" // needed for CreateModularPeerConnectionFactory
 
-#include "PoolArrays.hpp"
-#include "net/WebRTCDataChannelNative.hpp"
 #include <mutex>
 
 namespace godot_webrtc {
 
-class WebRTCLibDataChannel : public WebRTCDataChannelNative {
-	GODOT_CLASS(WebRTCLibDataChannel, WebRTCDataChannelNative);
+class WebRTCLibDataChannel : public godot::WebRTCDataChannelExtension {
+	GDCLASS(WebRTCLibDataChannel, WebRTCDataChannelExtension);
 
 private:
 	class ChannelObserver : public webrtc::DataChannelObserver {
@@ -60,43 +68,44 @@ private:
 	rtc::scoped_refptr<webrtc::DataChannelInterface> channel;
 
 	std::mutex *mutex;
-	std::queue<godot::PoolByteArray> packet_queue;
-	godot::PoolByteArray current_packet;
-	std::string label;
-	std::string protocol;
+	std::queue<std::vector<uint8_t>> packet_queue;
+	std::vector<uint8_t> current_packet;
+	godot::String label;
+	godot::String protocol;
+
+protected:
+	static void _bind_methods() {}
 
 public:
 	static WebRTCLibDataChannel *new_data_channel(rtc::scoped_refptr<webrtc::DataChannelInterface> p_channel);
 	static void _register_methods();
 
-	void _init();
-
 	void bind_channel(rtc::scoped_refptr<webrtc::DataChannelInterface> p_channel);
 	void queue_packet(const uint8_t *data, uint32_t size);
 
-	/* WebRTCDataChannel */
-	void set_write_mode(godot_int mode);
-	godot_int get_write_mode() const;
-	bool was_string_packet() const;
-
-	ChannelState get_ready_state() const;
-	const char *get_label() const;
-	bool is_ordered() const;
-	int get_id() const;
-	int get_max_packet_life_time() const;
-	int get_max_retransmits() const;
-	const char *get_protocol() const;
-	bool is_negotiated() const;
-	int get_buffered_amount() const;
-
-	godot_error poll();
-	void close();
-
 	/* PacketPeer */
-	virtual godot_error get_packet(const uint8_t **r_buffer, int *r_len);
-	virtual godot_error put_packet(const uint8_t *p_buffer, int p_len);
-	virtual godot_int get_available_packet_count() const;
-	virtual godot_int get_max_packet_size() const;
+	virtual int64_t _get_packet(const uint8_t **r_buffer, int32_t *r_len) override;
+	virtual int64_t _put_packet(const uint8_t *p_buffer, int64_t p_len) override;
+	virtual int64_t _get_available_packet_count() const override;
+	virtual int64_t _get_max_packet_size() const override;
+
+	/* WebRTCDataChannel */
+	int64_t _poll() override;
+	void _close() override;
+
+	void _set_write_mode(int64_t mode) override;
+	int64_t _get_write_mode() const override;
+	bool _was_string_packet() const override;
+
+	int64_t _get_ready_state() const override;
+	godot::String _get_label() const override;
+	bool _is_ordered() const override;
+	int64_t _get_id() const override;
+	int64_t _get_max_packet_life_time() const override;
+	int64_t _get_max_retransmits() const override;
+	godot::String _get_protocol() const override;
+	bool _is_negotiated() const override;
+	int64_t _get_buffered_amount() const override;
 
 	WebRTCLibDataChannel();
 	~WebRTCLibDataChannel();

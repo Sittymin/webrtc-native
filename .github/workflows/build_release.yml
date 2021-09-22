@@ -1,6 +1,10 @@
 name: 🔧 Build -> Package 📦
 on: [push, pull_request]
 
+env:
+  GODOT_VERSION: '4'
+  GODOT_CPP: 'godot-cpp'
+
 jobs:
   static-checks:
     name: 📊 Static Checks (clang-format, black format, file format)
@@ -33,6 +37,7 @@ jobs:
     name: 🔧 Build
     needs: static-checks
     strategy:
+      fail-fast: false
       matrix:
         include:
           # Android
@@ -53,56 +58,50 @@ jobs:
             sconsflags: 'android_arch=arm64v8'
             os: 'ubuntu-20.04'
 
-          # iOS
-          - platform: ios
-            arch: 'x64'
-            sconsflags: 'ios_arch=x86_64 ios_simulator=true'
-            os: 'macos-latest'
-          - platform: ios
-            arch: 'arm'
-            sconsflags: 'ios_arch=armv7'
-            os: 'macos-latest'
-          - platform: ios
-            arch: 'arm64'
-            sconsflags: 'ios_arch=arm64'
-            os: 'macos-latest'
-
-          # Linux
-          - platform: linux
-            arch: 'x86'
-            sconsflags: 'bits=32'
-            os: 'ubuntu-20.04'
-          - platform: linux
-            arch: 'x64'
-            sconsflags: 'bits=64'
-            os: 'ubuntu-20.04'
-
-          # macOS
-          - platform: osx
-            arch: 'x64'
-            sconsflags: 'bits=64'
-            os: 'macos-latest'
-          - platform: osx
-            arch: 'arm64'
-            sconsflags: 'bits=64 macos_arch=arm64 macos_sdk_path=/Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk/'
-            os: 'macos-10.15'
-
-          # Windows
-          - platform: windows
-            arch: 'x86'
-            sconsflags: 'bits=32'
-            os: 'windows-latest'
-            msvc_arch: amd64_x86
-          - platform: windows
-            arch: 'x64'
-            sconsflags: 'bits=64'
-            os: 'windows-latest'
-            msvc_arch: amd64
+#          # iOS
+#          - platform: ios
+#            arch: 'x64'
+#            sconsflags: 'ios_arch=x86_64 ios_simulator=true'
+#            os: 'macos-latest'
+#          - platform: ios
+#            arch: 'arm64'
+#            sconsflags: 'ios_arch=arm64'
+#            os: 'macos-11'
+#
+#          # Linux
+#          - platform: linux
+#            arch: 'x86'
+#            sconsflags: 'bits=32 use_llvm=yes'
+#            os: 'ubuntu-20.04'
+#          - platform: linux
+#            arch: 'x64'
+#            sconsflags: 'bits=64 use_llvm=yes'
+#            os: 'ubuntu-20.04'
+#
+#          # macOS
+#          - platform: osx
+#            arch: 'x64'
+#            sconsflags: 'bits=64'
+#            os: 'macos-11'
+#          - platform: osx
+#            arch: 'arm64'
+#            sconsflags: 'bits=64 macos_arch=arm64'
+#            os: 'macos-11'
+#
+#          # Windows
+#          - platform: windows
+#            arch: 'x86'
+#            sconsflags: 'bits=32'
+#            os: 'windows-2019'
+#            msvc_arch: amd64_x86
+#          - platform: windows
+#            arch: 'x64'
+#            sconsflags: 'bits=64'
+#            os: 'windows-2019'
+#            msvc_arch: amd64
 
     env:
       SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} --jobs=2
-      NDK_VERSION: 22b
-      ANDROID_NDK_ROOT: ${{github.workspace}}/android-ndk-r22b
       MSVC_VARS: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat'
 
     defaults:
@@ -113,23 +112,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-
-      - name: Cache NDK
-        id: cache-ndk
-        if: ${{ matrix.platform == 'android' }}
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.ANDROID_NDK_ROOT }}
-          key: ndk-${{ env.NDK_VERSION }}
-
-      - name: Download NDK
-        if: ${{ matrix.platform == 'android' && steps.cache-ndk.outputs.cache-hit != 'true' }}
-        id: setup-ndk
-        run: |
-          cd ${{ github.workspace }}
-          curl -L https://dl.google.com/android/repository/android-ndk-r${{ env.NDK_VERSION }}-linux-x86_64.zip -o ndk.zip
-          unzip ndk.zip
-          ls
 
       - name: Setup MSVC build environment for ${{ matrix.msvc_arch }}
         if: ${{ matrix.platform == 'windows' }}
@@ -159,26 +141,21 @@ jobs:
           platform: ${{ matrix.platform }}
           archs: ${{ matrix.arch }}
 
-      - name: Fix godot-cpp revision and file names for OSX arm64 build.
-        if: ${{ matrix.platform == 'osx' && matrix.arch == 'arm64' }}
+      - name: Fix godot-cpp for Godot 4.
+        shell: bash
         run: |
-          cd godot-cpp
-          git checkout e08ecdc28c5409cb5366027227e996c342dcee93
-          rm -rf src/gen/
-          rm -rf include/gen/
-          mkdir bin
-          ln -s libgodot-cpp.osx.debug.64.a bin/libgodot-cpp.osx.debug.arm64.a
-          ln -s libgodot-cpp.osx.release.64.a bin/libgodot-cpp.osx.release.arm64.a
+          if [ "${GODOT_VERSION}" != "3" ]; then
+              cd ${GODOT_CPP}
+              patch -p1 < ../misc/patches/scons.diff
+          fi
 
-      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - godot-cpp
+      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - debug
         run: |
-          scons -C godot-cpp target=debug generate_bindings=yes
-          scons -C godot-cpp target=release
+          scons target=debug generate_bindings=yes godot_version=${GODOT_VERSION}
 
-      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - webrtc-native
+      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - release
         run: |
-          scons target=debug
-          scons target=release
+          scons target=release godot_version=${GODOT_VERSION}
 
       - uses: actions/upload-artifact@v2
         with:
