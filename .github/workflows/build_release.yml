@@ -163,24 +163,6 @@ jobs:
           platform: ${{ matrix.platform }}
           archs: ${{ matrix.arch }}
 
-      - name: Fix godot-cpp for Godot 4.
-        shell: bash
-        run: |
-          if [ "${GODOT_VERSION}" != "3" ]; then
-              cd ${GODOT_CPP}
-              patch -p1 < ../misc/patches/cpp_array_assign.diff
-              patch -p1 < ../misc/patches/scons.diff
-              cp ../misc/patches/extension_api.json godot-headers/extension_api.json
-          fi
-
-      - name: Fix godot-cpp file names for OSX arm64 build.
-        if: ${{ matrix.platform == 'osx' && matrix.arch == 'arm64' }}
-        run: |
-          cd ${GODOT_CPP}
-          mkdir bin
-          ln -s libgodot-cpp.osx.debug.64.a bin/libgodot-cpp.osx.debug.arm64.a
-          ln -s libgodot-cpp.osx.release.64.a bin/libgodot-cpp.osx.release.arm64.a
-
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - godot-cpp
         run: |
           scons -C ${GODOT_CPP} target=debug generate_bindings=yes
