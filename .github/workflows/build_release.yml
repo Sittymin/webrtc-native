@@ -171,15 +171,13 @@ jobs:
               patch -p1 < ../misc/patches/scons.diff
           fi
 
-      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - godot-cpp
+      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - debug
         run: |
-          scons -C ${GODOT_CPP} target=debug generate_bindings=yes
-          scons -C ${GODOT_CPP} target=release
+          scons target=debug generate_bindings=yes godot_version=${GODOT_VERSION}
 
-      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - webrtc-native
+      - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - release
         run: |
-          scons target=debug godot_version=${GODOT_VERSION} build_library=no
-          scons target=release godot_version=${GODOT_VERSION} build_library=no
+          scons target=release godot_version=${GODOT_VERSION}
 
       - uses: actions/upload-artifact@v2
         with:
