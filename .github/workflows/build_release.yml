@@ -163,6 +163,14 @@ jobs:
           platform: ${{ matrix.platform }}
           archs: ${{ matrix.arch }}
 
+      - name: Fix godot-cpp for Godot 4.
+        shell: bash
+        run: |
+          if [ "${GODOT_VERSION}" != "3" ]; then
+              cd ${GODOT_CPP}
+              patch -p1 < ../misc/patches/scons.diff
+          fi
+
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - godot-cpp
         run: |
           scons -C ${GODOT_CPP} target=debug generate_bindings=yes
