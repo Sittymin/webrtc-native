@@ -30,21 +30,20 @@ def gen_gdnative_lib(target, source, env):
                 .replace("{TARGET}", env["target"])
             )
 
+env = Environment()
+opts = Variables(["customs.py"], ARGUMENTS)
+opts.Add(EnumVariable("godot_version", "The Godot target version", "4", ["3", "4"]))
+opts.Update(env)
 
-env = SConscript("godot-cpp/SConstruct")
+if env["godot_version"] == "3":
+    env = SConscript("godot-cpp-3.x/SConstruct")
+else:
+    env = SConscript("godot-cpp/SConstruct")
+opts.Update(env)
 
 env.Append(BUILDERS={"GDNativeLibBuilder": Builder(action=gen_gdnative_lib)})
 
-customs = ["custom.py"]
-opts = Variables(customs, ARGUMENTS)
-
-opts.Add(EnumVariable("godot_version", "The Godot target version", "4", ["3", "4"]))
-
-# Update environment (parse options)
-opts.Update(env)
-
 target = env["target"]
-
 result_path = os.path.join("bin", "webrtc" if env["target"] == "release" else "webrtc_debug", "lib")
 
 # Convenience check to enforce the use_llvm overrides when CXX is clang(++)
@@ -143,7 +142,6 @@ sources.append(
 if env["godot_version"] == "4":
     sources.append("src/init_gdextension.cpp")
 else:
-    env.Append(CPPPATH=[godot_cpp + "/include", godot_cpp + "/include/core", godot_cpp + "/include/gen"])
     env.Append(CPPDEFINES=["GDNATIVE_WEBRTC"])
     sources.append("src/init_gdnative.cpp")
     add_sources(sources, "src/net/", "cpp")
