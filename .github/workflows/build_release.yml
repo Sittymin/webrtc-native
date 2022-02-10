@@ -170,8 +170,8 @@ jobs:
 
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - webrtc-native
         run: |
-          scons target=debug godot_version=${GODOT_VERSION}
-          scons target=release godot_version=${GODOT_VERSION}
+          scons target=debug godot_version=${GODOT_VERSION} build_library=no
+          scons target=release godot_version=${GODOT_VERSION} build_library=no
 
       - uses: actions/upload-artifact@v2
         with:
