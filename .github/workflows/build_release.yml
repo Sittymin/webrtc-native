@@ -65,11 +65,11 @@ jobs:
           - platform: ios
             arch: 'arm'
             sconsflags: 'ios_arch=armv7'
-            os: 'macos-latest'
+            os: 'macos-11'
           - platform: ios
             arch: 'arm64'
             sconsflags: 'ios_arch=arm64'
-            os: 'macos-latest'
+            os: 'macos-11'
 
           # Linux
           - platform: linux
@@ -85,22 +85,22 @@ jobs:
           - platform: osx
             arch: 'x64'
             sconsflags: 'bits=64'
-            os: 'macos-latest'
+            os: 'macos-11'
           - platform: osx
             arch: 'arm64'
-            sconsflags: 'bits=64 macos_arch=arm64 macos_sdk_path=/Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk/'
-            os: 'macos-10.15'
+            sconsflags: 'bits=64 macos_arch=arm64'
+            os: 'macos-11'
 
           # Windows
           - platform: windows
             arch: 'x86'
             sconsflags: 'bits=32'
-            os: 'windows-latest'
+            os: 'windows-2019'
             msvc_arch: amd64_x86
           - platform: windows
             arch: 'x64'
             sconsflags: 'bits=64'
-            os: 'windows-latest'
+            os: 'windows-2019'
             msvc_arch: amd64
 
     env:
