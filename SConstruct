@@ -62,6 +62,9 @@ if target_platform == "android":
     target_arch = env["android_arch"]
 elif target_platform == "ios":
     target_arch = env["ios_arch"]
+elif target_platform == "osx":
+    if env["macos_arch"] != "universal":
+        target_arch = env["macos_arch"]
 
 lib_path += {
     "32": "/x86",
