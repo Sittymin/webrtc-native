@@ -102,8 +102,6 @@ jobs:
 
     env:
       SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} --jobs=2
-      NDK_VERSION: 23b
-      ANDROID_NDK_ROOT: ${{github.workspace}}/android-ndk-r23b
       MSVC_VARS: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat'
 
     defaults:
@@ -114,23 +112,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-
-      - name: Cache NDK
-        id: cache-ndk
-        if: ${{ matrix.platform == 'android' }}
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.ANDROID_NDK_ROOT }}
-          key: ndk-${{ env.NDK_VERSION }}
-
-      - name: Download NDK
-        if: ${{ matrix.platform == 'android' && steps.cache-ndk.outputs.cache-hit != 'true' }}
-        id: setup-ndk
-        run: |
-          cd ${{ github.workspace }}
-          curl -L https://dl.google.com/android/repository/android-ndk-r${{ env.NDK_VERSION }}-linux.zip -o ndk.zip
-          unzip ndk.zip
-          ls
 
       - name: Setup MSVC build environment for ${{ matrix.msvc_arch }}
         if: ${{ matrix.platform == 'windows' }}
