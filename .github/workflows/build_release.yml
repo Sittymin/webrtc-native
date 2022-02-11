@@ -102,8 +102,8 @@ jobs:
 
     env:
       SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} --jobs=2
-      NDK_VERSION: 21c
-      ANDROID_NDK_ROOT: ${{github.workspace}}/android-ndk-r21c
+      NDK_VERSION: 23b
+      ANDROID_NDK_ROOT: ${{github.workspace}}/android-ndk-r23b
       MSVC_VARS: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat'
 
     defaults:
