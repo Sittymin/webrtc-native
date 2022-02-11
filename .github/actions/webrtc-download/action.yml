@@ -4,15 +4,15 @@ inputs:
   repo:
     description: 'Base repository'
     required: true
-    default: "godotengine/webrtc-actions"
+    default: "Faless/webrtc-actions"
   release:
     description: 'Release tag'
     required: true
-    default: '4472-33644-92ba70c'
+    default: '4758-35509-a6b138d'
   webrtc-base-name:
     description: 'The WebRTC version'
     required: true
-    default: "webrtc-33644-92ba70c"
+    default: "webrtc-35509-a6b138d"
   out-dir:
     description: 'Directory where to extract the library'
     required: true
