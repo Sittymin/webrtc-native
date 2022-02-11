@@ -53,7 +53,7 @@ if "CXX" in env and "clang" in os.path.basename(env["CXX"]):
 
 # WebRTC stuff
 webrtc_dir = "webrtc"
-lib_name = "libwebrtc_full"
+libs = ["libboringssl", "libprotobuf_lite", "libwebrtc"]
 lib_path = os.path.join(webrtc_dir, env["platform"])
 
 target_platform = env["platform"]
@@ -84,6 +84,7 @@ else:
 env.Append(CPPPATH=[webrtc_dir + "/include", webrtc_dir + "/include/third_party/abseil-cpp"])
 
 if target_platform == "linux":
+    env.Append(LIBS=["atomic"])
     env.Append(LIBPATH=[lib_path])
     env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_LINUX"])
     env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
@@ -92,8 +93,7 @@ elif target_platform == "windows":
     # Mostly VisualStudio
     if env["CC"] == "cl":
         env.Append(CCFLAGS=["/DWEBRTC_WIN", "/DWIN32_LEAN_AND_MEAN", "/DNOMINMAX", "/DRTC_UNUSED=", "/DNO_RETURN="])
-        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm", lib_name]])
-        env.Append(LIBPATH=[lib_path])
+        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm"] + libs])
     # Mostly "gcc"
     else:
         env.Append(
@@ -107,25 +107,18 @@ elif target_platform == "windows":
                 "-DNO_RETURN=",
             ]
         )
-        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm", lib_name]])
-        env.Append(LIBPATH=[lib_path])
+        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm"] + libs])
 
 elif target_platform == "osx":
-    env.Append(LIBS=[lib_name])
-    env.Append(LIBPATH=[lib_path])
     env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_MAC"])
     env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
 
 elif target_platform == "ios":
-    env.Append(LIBS=[lib_name])
-    env.Append(LIBPATH=[lib_path])
     env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_MAC", "-DWEBRTC_IOS"])
     env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
 
 elif target_platform == "android":
     env.Append(LIBS=["log"])
-    env.Append(LIBS=[lib_name])
-    env.Append(LIBPATH=[lib_path])
     env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_LINUX", "-DWEBRTC_ANDROID"])
     env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
 
@@ -133,6 +126,11 @@ elif target_platform == "android":
         env.Append(CCFLAGS=["-DWEBRTC_ARCH_ARM64", "-DWEBRTC_HAS_NEON"])
     elif target_arch == "armv7":
         env.Append(CCFLAGS=["-DWEBRTC_ARCH_ARM", "-DWEBRTC_ARCH_ARM_V7", "-DWEBRTC_HAS_NEON"])
+
+
+env.Append(LIBPATH=[lib_path])
+if target_platform != "windows":
+    env.Append(LIBS=libs)
 
 # Our includes and sources
 env.Append(CPPPATH=["src/"])
