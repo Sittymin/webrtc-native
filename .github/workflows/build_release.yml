@@ -63,10 +63,6 @@ jobs:
             sconsflags: 'ios_arch=x86_64 ios_simulator=true'
             os: 'macos-latest'
           - platform: ios
-            arch: 'arm'
-            sconsflags: 'ios_arch=armv7'
-            os: 'macos-11'
-          - platform: ios
             arch: 'arm64'
             sconsflags: 'ios_arch=arm64'
             os: 'macos-11'
