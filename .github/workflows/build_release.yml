@@ -128,7 +128,7 @@ jobs:
         id: setup-ndk
         run: |
           cd ${{ github.workspace }}
-          curl -L https://dl.google.com/android/repository/android-ndk-r${{ env.NDK_VERSION }}-linux-x86_64.zip -o ndk.zip
+          curl -L https://dl.google.com/android/repository/android-ndk-r${{ env.NDK_VERSION }}-linux.zip -o ndk.zip
           unzip ndk.zip
           ls
 
