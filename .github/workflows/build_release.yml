@@ -37,6 +37,7 @@ jobs:
     name: 🔧 Build
     needs: static-checks
     strategy:
+      fail-fast: false
       matrix:
         include:
           # Android
