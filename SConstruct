@@ -149,7 +149,7 @@ else:
     add_sources(sources, "src/net/", "cpp")
 
 # Make the shared library
-result_name = "webrtc_native." + env["SHLIBSUFFIX"]
+result_name = "webrtc_native.{}.{}.{}{}".format(env["platform"], env["target"], env["arch_suffix"], env["SHLIBSUFFIX"])
 library = env.SharedLibrary(target=os.path.join(result_path, result_name), source=sources)
 Default(library)
 
