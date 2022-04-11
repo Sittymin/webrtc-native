@@ -53,7 +53,7 @@ if "CXX" in env and "clang" in os.path.basename(env["CXX"]):
 
 # WebRTC stuff
 webrtc_dir = "webrtc"
-libs = ["libboringssl", "libprotobuf_lite", "libwebrtc"]
+libs = ["libwebrtc_full"]
 lib_path = os.path.join(webrtc_dir, env["platform"])
 
 target_platform = env["platform"]
