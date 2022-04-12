@@ -67,23 +67,10 @@ MK_ERROR(ERR_BUG);
 #endif
 
 void WebRTCLibPeerConnection::initialize_signaling() {
-#if 0
-	if (signaling_thread.get() == nullptr) {
-		rtc::InitializeSSL();
-		signaling_thread = rtc::Thread::Create();
-		signaling_thread->Start();
-	}
-#endif
 	initKvsWebRtc();
 }
 
 void WebRTCLibPeerConnection::deinitialize_signaling() {
-#if 0
-	if (signaling_thread.get() != nullptr) {
-		signaling_thread->Stop();
-		signaling_thread.release();
-	}
-#endif
 	deinitKvsWebRtc();
 }
 
@@ -384,8 +371,10 @@ void WebRTCLibPeerConnection::_init() {
 	_create_pc(config);
 }
 
-Error WebRTCLibPeerConnection::_create_pc(RtcConfiguration &config) {
-	STATUS err = createPeerConnection(&config, &peer_connection);
+Error WebRTCLibPeerConnection::_create_pc(RtcConfiguration &r_config) {
+	// TODO free old peerconnection.
+	r_config.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+	STATUS err = createPeerConnection(&r_config, &peer_connection);
 	if (err != STATUS_SUCCESS) {
 		WARN_PRINT("Error creating PeerConnection: " + godot::String::num(err));
 		return FAILED;
