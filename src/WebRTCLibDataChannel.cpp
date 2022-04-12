@@ -74,7 +74,7 @@ WebRTCLibDataChannel *WebRTCLibDataChannel::new_data_channel(rtc::scoped_refptr<
 	tmp->bind_channel(p_channel);
 	return tmp;
 #else
-	WebRTCLibDataChannel *out = memnew(WebRTCLibDataChannel());
+	WebRTCLibDataChannel *out = memnew(WebRTCLibDataChannel);
 	out->bind_channel(p_channel);
 	return out;
 #endif

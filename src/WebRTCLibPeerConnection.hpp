@@ -91,7 +91,7 @@ private:
 	/** PeerConnectionObserver callback functions **/
 	class GodotPCO : public webrtc::PeerConnectionObserver {
 	public:
-		WebRTCLibPeerConnection *parent;
+		WebRTCLibPeerConnection *parent = nullptr;
 
 		GodotPCO(WebRTCLibPeerConnection *p_parent) {
 			parent = p_parent;

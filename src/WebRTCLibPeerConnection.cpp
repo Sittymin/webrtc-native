@@ -70,12 +70,11 @@ std::unique_ptr<rtc::Thread> WebRTCLibPeerConnection::signaling_thread = nullptr
 
 // PeerConnectionObserver
 void WebRTCLibPeerConnection::GodotPCO::OnIceCandidate(const webrtc::IceCandidateInterface *candidate) {
-	Dictionary candidateSDP;
-	String candidateSdpMidName = candidate->sdp_mid().c_str();
+	String candidateSdpMidName(candidate->sdp_mid().c_str());
 	int candidateSdpMlineIndexName = candidate->sdp_mline_index();
 	std::string sdp;
 	candidate->ToString(&sdp);
-	String candidateSdpName = sdp.c_str();
+	String candidateSdpName(sdp.c_str());
 	parent->queue_signal("ice_candidate_created", 3, candidateSdpMidName, candidateSdpMlineIndexName, candidateSdpName);
 }
 
@@ -225,7 +224,7 @@ Object *WebRTCLibPeerConnection::_create_data_channel(const String &p_channel, c
 	ERR_FAIL_COND_V(peer_connection.get() == nullptr, nullptr);
 
 	// Read config from dictionary
-	webrtc::DataChannelInit config;
+	webrtc::DataChannelInit config = {};
 	Error err = _parse_channel_config(config, p_channel_config);
 	ERR_FAIL_COND_V(err != OK, nullptr);
 
@@ -241,10 +240,13 @@ int64_t WebRTCLibPeerConnection::_create_offer() {
 	return OK;
 }
 
-#define _MAKE_DESC(TYPE, SDP) webrtc::CreateSessionDescription((String(TYPE) == String("offer") ? webrtc::SdpType::kOffer : webrtc::SdpType::kAnswer), SDP.utf8().get_data())
+#define _MAKE_DESC(TYPE, SDP, RTCERR) webrtc::CreateSessionDescription((String(TYPE) == String("offer") ? webrtc::SdpType::kOffer : webrtc::SdpType::kAnswer), SDP.utf8().get_data(), RTCERR)
 int64_t WebRTCLibPeerConnection::_set_remote_description(const String &type, const String &sdp) {
 	ERR_FAIL_COND_V(peer_connection.get() == nullptr, ERR_UNCONFIGURED);
-	std::unique_ptr<webrtc::SessionDescriptionInterface> desc = _MAKE_DESC(type, sdp);
+	webrtc::SdpParseError error;
+	std::unique_ptr<webrtc::SessionDescriptionInterface> desc = _MAKE_DESC(type, sdp, &error);
+	ERR_FAIL_COND_V(!desc.get(), ERR_INVALID_PARAMETER);
+	// Also create the answer.
 	if (desc->GetType() == webrtc::SdpType::kOffer) {
 		ptr_ssdo->make_offer = true;
 	}
@@ -254,7 +256,9 @@ int64_t WebRTCLibPeerConnection::_set_remote_description(const String &type, con
 
 int64_t WebRTCLibPeerConnection::_set_local_description(const String &type, const String &sdp) {
 	ERR_FAIL_COND_V(peer_connection.get() == nullptr, ERR_UNCONFIGURED);
-	std::unique_ptr<webrtc::SessionDescriptionInterface> desc = _MAKE_DESC(type, sdp);
+	webrtc::SdpParseError error;
+	std::unique_ptr<webrtc::SessionDescriptionInterface> desc = _MAKE_DESC(type, sdp, &error);
+	ERR_FAIL_COND_V(!desc.get(), ERR_INVALID_PARAMETER);
 	peer_connection->SetLocalDescription(ptr_ssdo, desc.release());
 	return OK;
 }
@@ -263,15 +267,17 @@ int64_t WebRTCLibPeerConnection::_set_local_description(const String &type, cons
 int64_t WebRTCLibPeerConnection::_add_ice_candidate(const String &sdpMidName, int64_t sdpMlineIndexName, const String &sdpName) {
 	ERR_FAIL_COND_V(peer_connection.get() == nullptr, ERR_UNCONFIGURED);
 
-	webrtc::SdpParseError *error = nullptr;
-	webrtc::IceCandidateInterface *candidate = webrtc::CreateIceCandidate(
-			sdpMidName.utf8().get_data(),
+	webrtc::SdpParseError error;
+	std::string mid(sdpMidName.utf8().get_data());
+	std::string name(sdpName.utf8().get_data());
+	std::unique_ptr<webrtc::IceCandidateInterface> candidate(webrtc::CreateIceCandidate(
+			mid,
 			sdpMlineIndexName,
-			sdpName.utf8().get_data(),
-			error);
+			name,
+			&error));
 
-	ERR_FAIL_COND_V(error || !candidate, ERR_INVALID_PARAMETER);
-	ERR_FAIL_COND_V(!peer_connection->AddIceCandidate(candidate), FAILED);
+	ERR_FAIL_COND_V(!candidate.get(), ERR_INVALID_PARAMETER);
+	ERR_FAIL_COND_V(!peer_connection->AddIceCandidate(candidate.get()), FAILED);
 
 	return OK;
 }
