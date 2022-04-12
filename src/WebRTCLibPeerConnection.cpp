@@ -31,6 +31,8 @@
 #include "WebRTCLibPeerConnection.hpp"
 #include "WebRTCLibDataChannel.hpp"
 
+#include "rtc_base/ssl_adapter.h"
+
 using namespace godot;
 using namespace godot_webrtc;
 
@@ -105,14 +107,16 @@ void WebRTCLibPeerConnection::GodotCSDO::OnFailure(webrtc::RTCError error) {
 
 void WebRTCLibPeerConnection::initialize_signaling() {
 	if (signaling_thread.get() == nullptr) {
+		rtc::InitializeSSL();
 		signaling_thread = rtc::Thread::Create();
+		signaling_thread->Start();
 	}
-	signaling_thread->Start();
 }
 
 void WebRTCLibPeerConnection::deinitialize_signaling() {
 	if (signaling_thread.get() != nullptr) {
 		signaling_thread->Stop();
+		signaling_thread.release();
 	}
 }
 

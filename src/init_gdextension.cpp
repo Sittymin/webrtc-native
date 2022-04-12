@@ -39,9 +39,9 @@ using namespace godot;
 using namespace godot_webrtc;
 
 void register_webrtc_extension_types() {
+	WebRTCLibPeerConnection::initialize_signaling();
 	godot::ClassDB::register_class<WebRTCLibDataChannel>();
 	godot::ClassDB::register_class<WebRTCLibPeerConnection>();
-	WebRTCLibPeerConnection::initialize_signaling();
 }
 
 void unregister_webrtc_extension_types() {
