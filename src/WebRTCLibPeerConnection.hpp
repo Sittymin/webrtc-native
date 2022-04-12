@@ -41,11 +41,13 @@ using WebRTCPeerConnectionExtension = WebRTCPeerConnectionNative;
 };
 #else
 #include <godot_cpp/classes/web_rtc_peer_connection_extension.hpp>
+#include <godot_cpp/classes/json.hpp>
 #endif
 
-#include "api/peer_connection_interface.h" // interface for all things needed from WebRTC
-#include "media/base/media_engine.h" // needed for CreateModularPeerConnectionFactory
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+
 #include <mutex>
+#include <queue>
 
 namespace godot_webrtc {
 
@@ -53,16 +55,20 @@ class WebRTCLibPeerConnection : public godot::WebRTCPeerConnectionExtension {
 	GDCLASS(WebRTCLibPeerConnection, WebRTCPeerConnectionExtension);
 
 private:
-	static std::unique_ptr<rtc::Thread> signaling_thread;
+	RtcPeerConnection *peer_connection = nullptr;
+	godot::Array candidates;
 
-	godot::Error _create_pc(webrtc::PeerConnectionInterface::RTCConfiguration &config);
-	godot::Error _parse_ice_server(webrtc::PeerConnectionInterface::RTCConfiguration &r_config, godot::Dictionary p_server);
-	godot::Error _parse_channel_config(webrtc::DataChannelInit &r_config, const godot::Dictionary &p_dict);
+	godot::Error _create_pc(RtcConfiguration &r_config);
+	godot::Error _parse_ice_server(RtcConfiguration &r_config, godot::Dictionary p_server);
+	godot::Error _parse_channel_config(RtcDataChannelInit &r_config, const godot::Dictionary &p_dict);
 
 protected:
 	static void _bind_methods() {}
 
 public:
+	void queue_candidate(godot::String p_mid_name, int p_mline, godot::String p_candidate);
+	void emit_candidates();
+
 	static void _register_methods() {}
 	static void initialize_signaling();
 	static void deinitialize_signaling();
@@ -83,54 +89,12 @@ public:
 	WebRTCLibPeerConnection();
 	~WebRTCLibPeerConnection();
 
+	// TODO make private
+	void queue_signal(godot::String p_name, int p_argc, const godot::Variant &p_arg1 = godot::Variant(), const godot::Variant &p_arg2 = godot::Variant(), const godot::Variant &p_arg3 = godot::Variant());
+
 private:
 	/* helper functions */
-	void queue_signal(godot::String p_name, int p_argc, const godot::Variant &p_arg1 = godot::Variant(), const godot::Variant &p_arg2 = godot::Variant(), const godot::Variant &p_arg3 = godot::Variant());
 	void queue_packet(uint8_t *, int);
-
-	/** PeerConnectionObserver callback functions **/
-	class GodotPCO : public webrtc::PeerConnectionObserver {
-	public:
-		WebRTCLibPeerConnection *parent = nullptr;
-
-		GodotPCO(WebRTCLibPeerConnection *p_parent) {
-			parent = p_parent;
-		}
-		void OnIceCandidate(const webrtc::IceCandidateInterface *candidate) override;
-
-		void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState new_state) override {}
-		void OnAddStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream) override {}
-		void OnRemoveStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream) override {}
-		void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) override {}
-		void OnRenegotiationNeeded() override {}
-		void OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState new_state) override {}
-		void OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState new_state) override {}
-	};
-
-	/** CreateSessionDescriptionObserver callback functions **/
-	class GodotCSDO : public webrtc::CreateSessionDescriptionObserver {
-	public:
-		WebRTCLibPeerConnection *parent = nullptr;
-
-		GodotCSDO(WebRTCLibPeerConnection *p_parent) {
-			parent = p_parent;
-		}
-		void OnSuccess(webrtc::SessionDescriptionInterface *desc) override;
-		void OnFailure(webrtc::RTCError error) override;
-	};
-
-	/** SetSessionDescriptionObserver callback functions **/
-	class GodotSSDO : public webrtc::SetSessionDescriptionObserver {
-	public:
-		WebRTCLibPeerConnection *parent = nullptr;
-		bool make_offer = false;
-
-		GodotSSDO(WebRTCLibPeerConnection *p_parent) {
-			parent = p_parent;
-		}
-		void OnSuccess() override;
-		void OnFailure(webrtc::RTCError error) override;
-	};
 
 	class Signal {
 		godot::String method;
@@ -159,15 +123,9 @@ private:
 		}
 	};
 
-	GodotPCO pco;
-	rtc::scoped_refptr<GodotSSDO> ptr_ssdo;
-	rtc::scoped_refptr<GodotCSDO> ptr_csdo;
-
 	std::mutex *mutex_signal_queue = nullptr;
 	std::queue<Signal> signal_queue;
 
-	rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory;
-	rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection;
 };
 
 } // namespace godot_webrtc
