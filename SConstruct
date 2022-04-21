@@ -37,10 +37,15 @@ opts.Add(EnumVariable("godot_version", "The Godot target version", "4", ["3", "4
 opts.Update(env)
 
 if env["godot_version"] == "3":
-    env = SConscript("godot-cpp-3.x/SConstruct")
+    env = SConscript("godot-cpp-3.x/SConstruct").Clone()
+    # Require C++17
+    if sys.platform == "win32" or sys.platform == "msys" and env["platform"] == "windows" and not env["use_mingw"]:
+        # MSVC
+        env.Append(CCFLAGS=["/std:c++17"])
+    else:
+        env.Append(CCFLAGS=["-std=c++17"])
 else:
-    env = SConscript("godot-cpp/SConstruct")
-env = env.Clone()
+    env = SConscript("godot-cpp/SConstruct").Clone()
 opts.Update(env)
 
 env.Append(BUILDERS={"GDNativeLibBuilder": Builder(action=gen_gdnative_lib)})
