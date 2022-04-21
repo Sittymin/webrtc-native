@@ -35,30 +35,24 @@ using namespace godot;
 using namespace godot_webrtc;
 
 #ifdef GDNATIVE_WEBRTC
-#define MK_ERROR(m_err)                 \
-	struct Castable##m_err {            \
-		operator int64_t() {            \
-			return GODOT_##m_err;       \
-		}                               \
-		operator godot::Error() {       \
-			return godot::Error::m_err; \
-		}                               \
-		Castable##m_err() {             \
-		}                               \
-	};
+struct CastableError {
+	godot::Error err_enum;
+	int64_t err_int;
 
-MK_ERROR(OK);
-#define OK CastableOK()
-MK_ERROR(FAILED);
-#define FAILED CastableFAILED()
-MK_ERROR(ERR_UNCONFIGURED);
-#define ERR_UNCONFIGURED CastableERR_UNCONFIGURED()
-MK_ERROR(ERR_UNAVAILABLE);
-#define ERR_UNAVAILABLE CastableERR_UNAVAILABLE()
-MK_ERROR(ERR_INVALID_PARAMETER);
-#define ERR_INVALID_PARAMETER CastableERR_INVALID_PARAMETER()
-MK_ERROR(ERR_BUG);
-#define ERR_BUG CastableERR_BUG()
+	operator int64_t() { return err_int; }
+	operator godot::Error() { return err_enum; }
+	CastableError(godot::Error p_enum, int64_t p_int) {
+		err_enum = p_enum;
+		err_int = p_int;
+	}
+};
+#define MKERR(m_err) CastableError(godot::Error::m_err, GODOT_##m_err)
+#define OK MKERR(OK)
+#define FAILED MKERR(FAILED)
+#define ERR_UNCONFIGURED MKERR(ERR_UNCONFIGURED)
+#define ERR_UNAVAILABLE MKERR(ERR_UNAVAILABLE)
+#define ERR_INVALID_PARAMETER MKERR(ERR_INVALID_PARAMETER)
+#define ERR_BUG MKERR(ERR_BUG)
 #endif
 
 void WebRTCLibPeerConnection::initialize_signaling() {
