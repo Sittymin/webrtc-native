@@ -169,7 +169,7 @@ int64_t WebRTCLibPeerConnection::_initialize(const Dictionary &p_config) {
 	return (int64_t)_create_pc(config);
 }
 
-Object *WebRTCLibPeerConnection::_create_data_channel(const String &p_channel, const Dictionary &p_channel_config) {
+Object *WebRTCLibPeerConnection::_create_data_channel(const String &p_channel, const Dictionary &p_channel_config) try {
 	ERR_FAIL_COND_V(!peer_connection, nullptr);
 
 	// Read config from dictionary
@@ -184,15 +184,22 @@ Object *WebRTCLibPeerConnection::_create_data_channel(const String &p_channel, c
 	WebRTCLibDataChannel *wrapper = WebRTCLibDataChannel::new_data_channel(ch);
 	ERR_FAIL_COND_V(wrapper == nullptr, nullptr);
 	return wrapper;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(nullptr);
 }
 
-int64_t WebRTCLibPeerConnection::_create_offer() {
+int64_t WebRTCLibPeerConnection::_create_offer() try {
 	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
+	ERR_FAIL_COND_V(_get_connection_state() != STATE_NEW, FAILED);
 	peer_connection->setLocalDescription(rtc::Description::Type::Offer);
 	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
 }
 
-int64_t WebRTCLibPeerConnection::_set_remote_description(const String &p_type, const String &p_sdp) {
+int64_t WebRTCLibPeerConnection::_set_remote_description(const String &p_type, const String &p_sdp) try {
 	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
 	std::string sdp(p_sdp.utf8().get_data());
 	std::string type(p_type.utf8().get_data());
@@ -203,6 +210,9 @@ int64_t WebRTCLibPeerConnection::_set_remote_description(const String &p_type, c
 		peer_connection->setLocalDescription(rtc::Description::Type::Answer);
 	}
 	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
 }
 
 int64_t WebRTCLibPeerConnection::_set_local_description(const String &p_type, const String &p_sdp) {
@@ -213,11 +223,14 @@ int64_t WebRTCLibPeerConnection::_set_local_description(const String &p_type, co
 	return OK;
 }
 
-int64_t WebRTCLibPeerConnection::_add_ice_candidate(const String &sdpMidName, int64_t sdpMlineIndexName, const String &sdpName) {
+int64_t WebRTCLibPeerConnection::_add_ice_candidate(const String &sdpMidName, int64_t sdpMlineIndexName, const String &sdpName) try {
 	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
 	rtc::Candidate candidate(sdpName.utf8().get_data(), sdpMidName.utf8().get_data());
 	peer_connection->addRemoteCandidate(candidate);
 	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
 }
 
 int64_t WebRTCLibPeerConnection::_poll() {
@@ -235,8 +248,9 @@ int64_t WebRTCLibPeerConnection::_poll() {
 
 void WebRTCLibPeerConnection::_close() {
 	if (peer_connection != nullptr) {
-		peer_connection->close();
-		peer_connection = nullptr;
+		try {
+			peer_connection->close();
+		} catch (...) { /* */ }
 	}
 
 	while (!signal_queue.empty()) {
@@ -253,11 +267,12 @@ void WebRTCLibPeerConnection::_init() {
 	_initialize(Dictionary());
 }
 
-Error WebRTCLibPeerConnection::_create_pc(rtc::Configuration &r_config) {
+Error WebRTCLibPeerConnection::_create_pc(rtc::Configuration &r_config) try {
 	// Prevents libdatachannel from automatically creating offers.
 	r_config.disableAutoNegotiation = true;
 
 	peer_connection = std::make_shared<rtc::PeerConnection>(r_config);
+	ERR_FAIL_COND_V(!peer_connection, FAILED);
 
 	// TODO "this" is not correct. "this" make memory go boom!
 	peer_connection->onLocalDescription([this](rtc::Description description) {
@@ -281,6 +296,9 @@ Error WebRTCLibPeerConnection::_create_pc(rtc::Configuration &r_config) {
 	});
 	*/
 	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
 }
 
 WebRTCLibPeerConnection::WebRTCLibPeerConnection() {

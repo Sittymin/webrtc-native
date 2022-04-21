@@ -169,11 +169,11 @@ int64_t WebRTCLibDataChannel::_poll() {
 	return OK;
 }
 
-void WebRTCLibDataChannel::_close() {
+void WebRTCLibDataChannel::_close() try {
 	if (channel) {
 		channel->close();
 	}
-}
+} catch (...) { /* */ }
 
 int64_t WebRTCLibDataChannel::_get_packet(const uint8_t **r_buffer, int32_t *r_len) {
 	ERR_FAIL_COND_V(packet_queue.empty(), ERR_UNAVAILABLE);
@@ -192,12 +192,16 @@ int64_t WebRTCLibDataChannel::_get_packet(const uint8_t **r_buffer, int32_t *r_l
 	return 0;
 }
 
-int64_t WebRTCLibDataChannel::_put_packet(const uint8_t *p_buffer, int64_t p_len) {
+int64_t WebRTCLibDataChannel::_put_packet(const uint8_t *p_buffer, int64_t p_len) try {
 	ERR_FAIL_COND_V(!channel, FAILED);
 	ERR_FAIL_COND_V(channel->isClosed(), FAILED);
 	channel->send(reinterpret_cast<const std::byte *>(p_buffer), p_len);
-	return 0;
+	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
 }
+
 
 int64_t WebRTCLibDataChannel::_get_available_packet_count() const {
 	return packet_queue.size();
