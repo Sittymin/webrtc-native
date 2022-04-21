@@ -32,24 +32,19 @@
 #define WEBRTC_DATA_CHANNEL_H
 
 #ifdef GDNATIVE_WEBRTC
-#include "net/WebRTCDataChannelNative.hpp"
 #include <Godot.hpp> // Godot.hpp must go first, or windows builds breaks
-#undef GDCLASS
-#define GDCLASS(arg1, arg2) GODOT_CLASS(WebRTCLibDataChannel, WebRTCDataChannelNative);
-namespace godot {
-using WebRTCDataChannelExtension = WebRTCDataChannelNative;
-};
+
+#include "net/WebRTCDataChannelNative.hpp"
+#define WebRTCDataChannelExtension WebRTCDataChannelNative
+#define GDCLASS(arg1, arg2) GODOT_CLASS(arg1, arg2)
 #else
 #include <godot_cpp/classes/web_rtc_data_channel_extension.hpp>
 #endif
 
-//#include "api/peer_connection_interface.h" // interface for all things needed from WebRTC
-//#include "media/base/media_engine.h" // needed for CreateModularPeerConnectionFactory
-//#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-#include "rtc/rtc.hpp"
-
 #include <mutex>
 #include <queue>
+
+#include "rtc/rtc.hpp"
 
 namespace godot_webrtc {
 
@@ -57,21 +52,6 @@ class WebRTCLibDataChannel : public godot::WebRTCDataChannelExtension {
 	GDCLASS(WebRTCLibDataChannel, WebRTCDataChannelExtension);
 
 private:
-#if 0
-	class ChannelObserver : public webrtc::DataChannelObserver {
-	public:
-		WebRTCLibDataChannel *parent;
-
-		ChannelObserver(WebRTCLibDataChannel *parent);
-		void OnMessage(const webrtc::DataBuffer &buffer) override;
-		void OnStateChange() override; // UNUSED
-		void OnBufferedAmountChange(uint64_t previous_amount) override; // UNUSED
-	};
-
-	ChannelObserver observer;
-	rtc::scoped_refptr<webrtc::DataChannelInterface> channel;
-#endif
-
 	std::mutex *mutex;
 	std::queue<std::vector<uint8_t>> packet_queue;
 	std::vector<uint8_t> current_packet;

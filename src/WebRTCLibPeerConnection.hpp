@@ -32,19 +32,15 @@
 #define WEBRTC_PEER_H
 
 #ifdef GDNATIVE_WEBRTC
-#include "net/WebRTCPeerConnectionNative.hpp"
 #include <Godot.hpp> // Godot.hpp must go first, or windows builds breaks
-#undef GDCLASS
-#define GDCLASS(arg1, arg2) GODOT_CLASS(WebRTCLibPeerConnection, WebRTCPeerConnectionNative);
-namespace godot {
-using WebRTCPeerConnectionExtension = WebRTCPeerConnectionNative;
-};
+
+#include "net/WebRTCPeerConnectionNative.hpp"
+#define WebRTCPeerConnectionExtension WebRTCPeerConnectionNative
+#define GDCLASS(arg1, arg2) GODOT_CLASS(arg1, arg2)
 #else
 #include <godot_cpp/classes/web_rtc_peer_connection_extension.hpp>
-#include <godot_cpp/classes/json.hpp>
 #endif
 
-//#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "rtc/rtc.hpp"
 
 #include <mutex>

@@ -31,6 +31,8 @@
 #include "WebRTCDataChannelNative.hpp"
 #include "net/WebRTCPeerConnectionNative.hpp"
 
+using namespace godot;
+
 void WebRTCDataChannelNative::register_interface(const godot_net_webrtc_data_channel *p_interface) {
 	ERR_FAIL_COND(!WebRTCPeerConnectionNative::_net_api);
 	WebRTCPeerConnectionNative::_net_api->godot_net_bind_webrtc_data_channel(_owner, p_interface);
