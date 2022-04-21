@@ -35,6 +35,7 @@
 #include "NativeScript.hpp"
 #define ERR_UNAVAILABLE GODOT_ERR_UNAVAILABLE
 #define FAILED GODOT_FAILED
+#define OK GODOT_OK
 #endif
 
 #include <stdio.h>
