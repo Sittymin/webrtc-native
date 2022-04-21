@@ -59,58 +59,47 @@ MK_ERROR(ERR_INVALID_PARAMETER);
 #define ERR_INVALID_PARAMETER CastableERR_INVALID_PARAMETER()
 MK_ERROR(ERR_BUG);
 #define ERR_BUG CastableERR_BUG()
-
-#define DICT_GET(p_dict, p_key) p_dict[p_key]
-
-#else
-#define DICT_GET(p_dict, p_key) p_dict.get(p_key, nil)
 #endif
 
 void WebRTCLibPeerConnection::initialize_signaling() {
+#ifdef DEBUG_ENABLED
 	rtc::InitLogger(rtc::LogLevel::Debug);
-	//initKvsWebRtc();
+#else
+	rtc::InitLogger(rtc::LogLevel::Error);
+#endif
 }
 
 void WebRTCLibPeerConnection::deinitialize_signaling() {
-	//deinitKvsWebRtc();
 }
 
 Error WebRTCLibPeerConnection::_parse_ice_server(rtc::Configuration &r_config, Dictionary p_server) {
-	// TODO
-#if 0
-	Variant v;
-	webrtc::PeerConnectionInterface::IceServer ice_server;
-	String url;
-
 	ERR_FAIL_COND_V(!p_server.has("urls"), ERR_INVALID_PARAMETER);
 
 	// Parse mandatory URL
-	Variant nil;
-	v = DICT_GET(p_server, "urls");
-	if (v.get_type() == Variant::STRING) {
-		url = v;
-		ice_server.urls.push_back(url.utf8().get_data());
-	} else if (v.get_type() == Variant::ARRAY) {
-		Array names = v;
-		for (int j = 0; j < names.size(); j++) {
-			v = names[j];
-			ERR_FAIL_COND_V(v.get_type() != Variant::STRING, ERR_INVALID_PARAMETER);
-			url = v;
-			ice_server.urls.push_back(url.utf8().get_data());
-		}
+	Array urls;
+	Variant urls_var = p_server["urls"];
+	if (urls_var.get_type() == Variant::STRING) {
+		urls.push_back(urls_var);
+	} else if (urls_var.get_type() == Variant::ARRAY) {
+		urls = urls_var;
 	} else {
 		ERR_FAIL_V(ERR_INVALID_PARAMETER);
 	}
 	// Parse credentials (only meaningful for TURN, only support password)
-	if (p_server.has("username") && (v = DICT_GET(p_server, "username")) && v.get_type() == Variant::STRING) {
-		ice_server.username = (v.operator String()).utf8().get_data();
+	String username;
+	String credential;
+	if (p_server.has("username") && p_server["username"].get_type() == Variant::STRING) {
+		username = p_server["username"];
 	}
-	if (p_server.has("credential") && (v = DICT_GET(p_server, "credential")) && v.get_type() == Variant::STRING) {
-		ice_server.password = (v.operator String()).utf8().get_data();
+	if (p_server.has("credential") && p_server["credential"].get_type() == Variant::STRING) {
+		credential = p_server["credential"];
 	}
-
-	r_config.servers.push_back(ice_server);
-#endif
+	for (int i = 0; i < urls.size(); i++) {
+		rtc::IceServer srv(urls[i].operator String().utf8().get_data());
+		srv.username = username.utf8().get_data();
+		srv.password = credential.utf8().get_data();
+		r_config.iceServers.push_back(srv);
+	}
 	return OK;
 }
 
@@ -168,22 +157,15 @@ int64_t WebRTCLibPeerConnection::_get_connection_state() const {
 
 int64_t WebRTCLibPeerConnection::_initialize(const Dictionary &p_config) {
 	rtc::Configuration config = {};
-	config.disableAutoNegotiation = true;
-
-	Variant nil;
-	Variant v;
-#if 0
-	if (p_config.has("iceServers") && (v = DICT_GET(p_config, "iceServers")) && v.get_type() == Variant::ARRAY) {
-		Array servers = v;
+	if (p_config.has("iceServers") && p_config["iceServers"].get_type() == Variant::ARRAY) {
+		Array servers = p_config["iceServers"];
 		for (int i = 0; i < servers.size(); i++) {
-			v = servers[i];
-			ERR_FAIL_COND_V(v.get_type() != Variant::DICTIONARY, ERR_INVALID_PARAMETER);
-			Dictionary server = v;
+			ERR_FAIL_COND_V(servers[i].get_type() != Variant::DICTIONARY, ERR_INVALID_PARAMETER);
+			Dictionary server = servers[i];
 			Error err = _parse_ice_server(config, server);
 			ERR_FAIL_COND_V(err != OK, FAILED);
 		}
 	}
-#endif
 	return (int64_t)_create_pc(config);
 }
 
@@ -265,13 +247,15 @@ void WebRTCLibPeerConnection::_init() {
 #ifdef GDNATIVE_WEBRTC
 	register_interface(&interface);
 #endif
-	// initialize variables:
 	mutex_signal_queue = new std::mutex;
 
 	_initialize(Dictionary());
 }
 
 Error WebRTCLibPeerConnection::_create_pc(rtc::Configuration &r_config) {
+	// Prevents libdatachannel from automatically creating offers.
+	r_config.disableAutoNegotiation = true;
+
 	peer_connection = std::make_shared<rtc::PeerConnection>(r_config);
 
 	// TODO "this" is not correct. "this" make memory go boom!
@@ -279,18 +263,14 @@ Error WebRTCLibPeerConnection::_create_pc(rtc::Configuration &r_config) {
 		String type = description.type() == rtc::Description::Type::Offer ? "offer" : "answer";
 		queue_signal("session_description_created", 2, type, String(std::string(description).c_str()));
 	});
-
 	peer_connection->onLocalCandidate([this](rtc::Candidate candidate) {
 		// TODO Is 0 okay?
 		queue_signal("ice_candidate_created", 3, String(candidate.mid().c_str()), 0, String(candidate.candidate().c_str()));
 	});
-
 	peer_connection->onDataChannel([this](std::shared_ptr<rtc::DataChannel> channel) {
-		std::cout << "================= GOT CHANNEL" << std::endl;
-		channel->send(std::string("Ciaone!"));
 		queue_signal("data_channel_received", 1, WebRTCLibDataChannel::new_data_channel(channel));
 	});
-
+	/*
 	peer_connection->onStateChange([](rtc::PeerConnection::State state) {
 		std::cout << "[State: " << state << "]" << std::endl;
 	});
@@ -298,6 +278,7 @@ Error WebRTCLibPeerConnection::_create_pc(rtc::Configuration &r_config) {
 	peer_connection->onGatheringStateChange([](rtc::PeerConnection::GatheringState state) {
 		std::cout << "[Gathering State: " << state << "]" << std::endl;
 	});
+	*/
 	return OK;
 }
 
