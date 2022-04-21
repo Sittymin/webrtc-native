@@ -36,7 +36,9 @@
 
 #include "net/WebRTCPeerConnectionNative.hpp"
 #define WebRTCPeerConnectionExtension WebRTCPeerConnectionNative
+#if !defined(GDCLASS)
 #define GDCLASS(arg1, arg2) GODOT_CLASS(arg1, arg2)
+#endif
 #else
 #include <godot_cpp/classes/web_rtc_peer_connection_extension.hpp>
 #endif
@@ -87,9 +89,6 @@ public:
 	void queue_signal(godot::String p_name, int p_argc, const godot::Variant &p_arg1 = godot::Variant(), const godot::Variant &p_arg2 = godot::Variant(), const godot::Variant &p_arg3 = godot::Variant());
 
 private:
-	/* helper functions */
-	void queue_packet(uint8_t *, int);
-
 	class Signal {
 		godot::String method;
 		godot::Variant argv[3];

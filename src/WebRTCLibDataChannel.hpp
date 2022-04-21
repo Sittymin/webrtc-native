@@ -36,7 +36,9 @@
 
 #include "net/WebRTCDataChannelNative.hpp"
 #define WebRTCDataChannelExtension WebRTCDataChannelNative
+#if !defined(GDCLASS)
 #define GDCLASS(arg1, arg2) GODOT_CLASS(arg1, arg2)
+#endif
 #else
 #include <godot_cpp/classes/web_rtc_data_channel_extension.hpp>
 #endif
@@ -57,15 +59,14 @@ private:
 	std::vector<uint8_t> current_packet;
 	std::shared_ptr<rtc::DataChannel> channel = nullptr;
 
+	void queue_packet(const uint8_t *data, uint32_t size);
+	void bind_channel(std::shared_ptr<rtc::DataChannel> p_channel);
+
 protected:
 	static void _bind_methods() {}
 
 public:
 	static WebRTCLibDataChannel *new_data_channel(std::shared_ptr<rtc::DataChannel> p_channel);
-	static void _register_methods();
-
-	void bind_channel(std::shared_ptr<rtc::DataChannel> p_channel);
-	void queue_packet(const uint8_t *data, uint32_t size);
 
 	/* PacketPeer */
 	virtual int64_t _get_packet(const uint8_t **r_buffer, int32_t *r_len) override;

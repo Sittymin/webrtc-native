@@ -211,9 +211,6 @@ int64_t WebRTCLibDataChannel::_get_max_packet_size() const {
 	return 1200; // TODO
 }
 
-void WebRTCLibDataChannel::_register_methods() {
-}
-
 WebRTCLibDataChannel::WebRTCLibDataChannel() {
 	mutex = new std::mutex;
 }
