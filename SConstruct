@@ -53,9 +53,9 @@ if "CXX" in env and "clang" in os.path.basename(env["CXX"]):
     env["use_llvm"] = True
 
 # WebRTC stuff
-rtc_dir = "kinesis"
-rtc_includes = [rtc_dir + "/include/deps", rtc_dir + "/include/sdk"]
-libs = ['libkvspic', 'libcrypto', 'libssl', 'libusrsctp', 'libsrtp2', 'libkvsWebrtcClient', 'libkvspicState', 'libkvspicUtils']
+rtc_dir = "libdatachannel"
+rtc_includes = [rtc_dir + "/include"]
+libs = ['ssl', 'usrsctp', 'libjuice-static', 'datachannel-static']
 libs.reverse()
 lib_path = os.path.join(rtc_dir, env["platform"])
 

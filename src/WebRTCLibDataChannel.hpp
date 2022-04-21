@@ -45,8 +45,8 @@ using WebRTCDataChannelExtension = WebRTCDataChannelNative;
 
 //#include "api/peer_connection_interface.h" // interface for all things needed from WebRTC
 //#include "media/base/media_engine.h" // needed for CreateModularPeerConnectionFactory
-#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-
+//#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include "rtc/rtc.hpp"
 
 #include <mutex>
 #include <queue>
@@ -75,18 +75,16 @@ private:
 	std::mutex *mutex;
 	std::queue<std::vector<uint8_t>> packet_queue;
 	std::vector<uint8_t> current_packet;
-	godot::String label;
-	godot::String protocol;
-	RtcDataChannel *channel = nullptr;
+	std::shared_ptr<rtc::DataChannel> channel = nullptr;
 
 protected:
 	static void _bind_methods() {}
 
 public:
-	static WebRTCLibDataChannel *new_data_channel(RtcDataChannel *p_channel);
+	static WebRTCLibDataChannel *new_data_channel(std::shared_ptr<rtc::DataChannel> p_channel);
 	static void _register_methods();
 
-	void bind_channel(RtcDataChannel *p_channel);
+	void bind_channel(std::shared_ptr<rtc::DataChannel> p_channel);
 	void queue_packet(const uint8_t *data, uint32_t size);
 
 	/* PacketPeer */
