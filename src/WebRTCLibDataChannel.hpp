@@ -32,24 +32,21 @@
 #define WEBRTC_DATA_CHANNEL_H
 
 #ifdef GDNATIVE_WEBRTC
-#include "net/WebRTCDataChannelNative.hpp"
 #include <Godot.hpp> // Godot.hpp must go first, or windows builds breaks
-#undef GDCLASS
-#define GDCLASS(arg1, arg2) GODOT_CLASS(WebRTCLibDataChannel, WebRTCDataChannelNative);
-namespace godot {
-using WebRTCDataChannelExtension = WebRTCDataChannelNative;
-};
+
+#include "net/WebRTCDataChannelNative.hpp"
+#define WebRTCDataChannelExtension WebRTCDataChannelNative
+#if !defined(GDCLASS)
+#define GDCLASS(arg1, arg2) GODOT_CLASS(arg1, arg2)
+#endif
 #else
 #include <godot_cpp/classes/web_rtc_data_channel_extension.hpp>
 #endif
 
-//#include "api/peer_connection_interface.h" // interface for all things needed from WebRTC
-//#include "media/base/media_engine.h" // needed for CreateModularPeerConnectionFactory
-#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-
-
 #include <mutex>
 #include <queue>
+
+#include "rtc/rtc.hpp"
 
 namespace godot_webrtc {
 
@@ -57,37 +54,19 @@ class WebRTCLibDataChannel : public godot::WebRTCDataChannelExtension {
 	GDCLASS(WebRTCLibDataChannel, WebRTCDataChannelExtension);
 
 private:
-#if 0
-	class ChannelObserver : public webrtc::DataChannelObserver {
-	public:
-		WebRTCLibDataChannel *parent;
-
-		ChannelObserver(WebRTCLibDataChannel *parent);
-		void OnMessage(const webrtc::DataBuffer &buffer) override;
-		void OnStateChange() override; // UNUSED
-		void OnBufferedAmountChange(uint64_t previous_amount) override; // UNUSED
-	};
-
-	ChannelObserver observer;
-	rtc::scoped_refptr<webrtc::DataChannelInterface> channel;
-#endif
-
 	std::mutex *mutex;
 	std::queue<std::vector<uint8_t>> packet_queue;
 	std::vector<uint8_t> current_packet;
-	godot::String label;
-	godot::String protocol;
-	RtcDataChannel *channel = nullptr;
+	std::shared_ptr<rtc::DataChannel> channel = nullptr;
+
+	void queue_packet(const uint8_t *data, uint32_t size);
+	void bind_channel(std::shared_ptr<rtc::DataChannel> p_channel);
 
 protected:
 	static void _bind_methods() {}
 
 public:
-	static WebRTCLibDataChannel *new_data_channel(RtcDataChannel *p_channel);
-	static void _register_methods();
-
-	void bind_channel(RtcDataChannel *p_channel);
-	void queue_packet(const uint8_t *data, uint32_t size);
+	static WebRTCLibDataChannel *new_data_channel(std::shared_ptr<rtc::DataChannel> p_channel);
 
 	/* PacketPeer */
 	virtual int64_t _get_packet(const uint8_t **r_buffer, int32_t *r_len) override;

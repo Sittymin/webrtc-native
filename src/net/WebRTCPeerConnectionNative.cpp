@@ -30,6 +30,8 @@
 
 #include "WebRTCPeerConnectionNative.hpp"
 
+using namespace godot;
+
 const godot_gdnative_ext_net_3_2_api_struct *WebRTCPeerConnectionNative::_net_api = NULL;
 
 void WebRTCPeerConnectionNative::register_interface(const godot_net_webrtc_peer_connection *p_interface) {
@@ -59,11 +61,11 @@ godot_int get_connection_state_wp(const void *user) {
 }
 
 godot_error initialize_wp(void *user, const godot_dictionary *p_config) {
-	return (godot_error)(((WebRTCPeerConnectionNative *)user)->_initialize(*(godot::Dictionary *)p_config));
+	return (godot_error)(((WebRTCPeerConnectionNative *)user)->_initialize(*(Dictionary *)p_config));
 }
 
 godot_object *create_data_channel_wp(void *user, const char *p_channel, const godot_dictionary *p_channel_config) {
-	godot::Object *ptr = ((WebRTCPeerConnectionNative *)user)->_create_data_channel(p_channel, *(godot::Dictionary *)p_channel_config);
+	Object *ptr = ((WebRTCPeerConnectionNative *)user)->_create_data_channel(p_channel, *(Dictionary *)p_channel_config);
 	if (ptr) {
 		return ptr->_owner;
 	}

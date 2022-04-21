@@ -50,6 +50,8 @@ godot_error add_ice_candidate_wp(void *, const char *, int, const char *);
 godot_error poll_wp(void *);
 void close_wp(void *);
 
+namespace godot {
+
 class WebRTCPeerConnectionNative : public godot::WebRTCPeerConnectionGDNative {
 	GODOT_CLASS(WebRTCPeerConnectionNative, godot::WebRTCPeerConnectionGDNative);
 
@@ -92,5 +94,7 @@ public:
 
 	~WebRTCPeerConnectionNative();
 };
+
+}; // namespace godot
 
 #endif // WEBRTC_PEER_NATIVE

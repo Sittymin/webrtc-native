@@ -32,19 +32,18 @@
 #define WEBRTC_PEER_H
 
 #ifdef GDNATIVE_WEBRTC
-#include "net/WebRTCPeerConnectionNative.hpp"
 #include <Godot.hpp> // Godot.hpp must go first, or windows builds breaks
-#undef GDCLASS
-#define GDCLASS(arg1, arg2) GODOT_CLASS(WebRTCLibPeerConnection, WebRTCPeerConnectionNative);
-namespace godot {
-using WebRTCPeerConnectionExtension = WebRTCPeerConnectionNative;
-};
+
+#include "net/WebRTCPeerConnectionNative.hpp"
+#define WebRTCPeerConnectionExtension WebRTCPeerConnectionNative
+#if !defined(GDCLASS)
+#define GDCLASS(arg1, arg2) GODOT_CLASS(arg1, arg2)
+#endif
 #else
 #include <godot_cpp/classes/web_rtc_peer_connection_extension.hpp>
-#include <godot_cpp/classes/json.hpp>
 #endif
 
-#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include "rtc/rtc.hpp"
 
 #include <mutex>
 #include <queue>
@@ -55,20 +54,17 @@ class WebRTCLibPeerConnection : public godot::WebRTCPeerConnectionExtension {
 	GDCLASS(WebRTCLibPeerConnection, WebRTCPeerConnectionExtension);
 
 private:
-	RtcPeerConnection *peer_connection = nullptr;
+	std::shared_ptr<rtc::PeerConnection> peer_connection = nullptr;
 	godot::Array candidates;
 
-	godot::Error _create_pc(RtcConfiguration &r_config);
-	godot::Error _parse_ice_server(RtcConfiguration &r_config, godot::Dictionary p_server);
-	godot::Error _parse_channel_config(RtcDataChannelInit &r_config, const godot::Dictionary &p_dict);
+	godot::Error _create_pc(rtc::Configuration &r_config);
+	godot::Error _parse_ice_server(rtc::Configuration &r_config, godot::Dictionary p_server);
+	godot::Error _parse_channel_config(rtc::DataChannelInit &r_config, const godot::Dictionary &p_dict);
 
 protected:
 	static void _bind_methods() {}
 
 public:
-	void queue_candidate(godot::String p_mid_name, int p_mline, godot::String p_candidate);
-	void emit_candidates();
-
 	static void _register_methods() {}
 	static void initialize_signaling();
 	static void deinitialize_signaling();
@@ -93,9 +89,6 @@ public:
 	void queue_signal(godot::String p_name, int p_argc, const godot::Variant &p_arg1 = godot::Variant(), const godot::Variant &p_arg2 = godot::Variant(), const godot::Variant &p_arg3 = godot::Variant());
 
 private:
-	/* helper functions */
-	void queue_packet(uint8_t *, int);
-
 	class Signal {
 		godot::String method;
 		godot::Variant argv[3];
@@ -125,7 +118,6 @@ private:
 
 	std::mutex *mutex_signal_queue = nullptr;
 	std::queue<Signal> signal_queue;
-
 };
 
 } // namespace godot_webrtc

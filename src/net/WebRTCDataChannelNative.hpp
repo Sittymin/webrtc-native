@@ -69,6 +69,8 @@ typedef struct {
 }
 #endif
 
+namespace godot {
+
 class WebRTCDataChannelNative : public godot::WebRTCDataChannelGDNative {
 	GODOT_CLASS(WebRTCDataChannelNative, godot::WebRTCDataChannelGDNative);
 
@@ -135,5 +137,7 @@ public:
 
 	~WebRTCDataChannelNative();
 };
+
+}; // namespace godot
 
 #endif // WEBRTC_DATA_CHANNEL_NATIVE

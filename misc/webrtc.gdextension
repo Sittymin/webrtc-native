@@ -1,0 +1,18 @@
+[configuration]
+
+entry_symbol = "webrtc_extension_init"
+
+[libraries]
+
+linux.x86_64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.linux.{TARGET}.{ARCH}.so"
+linux.x86 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.linux.{TARGET}.{ARCH}.so"
+osx.x86_64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.osx.{TARGET}.{ARCH}.dylib"
+osx.arm64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.osx.{TARGET}.{ARCH}.dylib"
+windows.x86_64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.windows.{TARGET}.{ARCH}.dll"
+windows.x86 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.windows.{TARGET}.{ARCH}.dll"
+android.armv7 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.android.{TARGET}.{ARCH}.so"
+android.arm64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.android.{TARGET}.{ARCH}.so"
+android.x86_64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.android.{TARGET}.{ARCH}.so"
+android.x86 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.android.{TARGET}.{ARCH}.so"
+ios.arm64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.ios.{TARGET}.{ARCH}.dylib"
+ios.x86_64 = "res://{GDNATIVE_PATH}/lib/libwebrtc_native.ios.{TARGET}.{ARCH}.simulator.dylib"

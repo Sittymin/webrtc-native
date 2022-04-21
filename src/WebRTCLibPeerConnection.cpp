@@ -35,302 +35,193 @@ using namespace godot;
 using namespace godot_webrtc;
 
 #ifdef GDNATIVE_WEBRTC
-#define MK_ERROR(m_err)                 \
-	struct Castable##m_err {            \
-		operator int64_t() {            \
-			return GODOT_##m_err;       \
-		}                               \
-		operator godot::Error() {       \
-			return godot::Error::m_err; \
-		}                               \
-		Castable##m_err() {             \
-		}                               \
-	};
+struct CastableError {
+	godot::Error err_enum;
+	int64_t err_int;
 
-MK_ERROR(OK);
-#define OK CastableOK()
-MK_ERROR(FAILED);
-#define FAILED CastableFAILED()
-MK_ERROR(ERR_UNCONFIGURED);
-#define ERR_UNCONFIGURED CastableERR_UNCONFIGURED()
-MK_ERROR(ERR_UNAVAILABLE);
-#define ERR_UNAVAILABLE CastableERR_UNAVAILABLE()
-MK_ERROR(ERR_INVALID_PARAMETER);
-#define ERR_INVALID_PARAMETER CastableERR_INVALID_PARAMETER()
-MK_ERROR(ERR_BUG);
-#define ERR_BUG CastableERR_BUG()
-
-#define DICT_GET(p_dict, p_key) p_dict[p_key]
-
-#else
-#define DICT_GET(p_dict, p_key) p_dict.get(p_key, nil)
+	operator int64_t() { return err_int; }
+	operator godot::Error() { return err_enum; }
+	CastableError(godot::Error p_enum, int64_t p_int) {
+		err_enum = p_enum;
+		err_int = p_int;
+	}
+};
+#define MKERR(m_err) CastableError(godot::Error::m_err, GODOT_##m_err)
+#define OK MKERR(OK)
+#define FAILED MKERR(FAILED)
+#define ERR_UNCONFIGURED MKERR(ERR_UNCONFIGURED)
+#define ERR_UNAVAILABLE MKERR(ERR_UNAVAILABLE)
+#define ERR_INVALID_PARAMETER MKERR(ERR_INVALID_PARAMETER)
+#define ERR_BUG MKERR(ERR_BUG)
 #endif
 
 void WebRTCLibPeerConnection::initialize_signaling() {
-	initKvsWebRtc();
+#ifdef DEBUG_ENABLED
+	rtc::InitLogger(rtc::LogLevel::Debug);
+#endif
 }
 
 void WebRTCLibPeerConnection::deinitialize_signaling() {
-	deinitKvsWebRtc();
 }
 
-Error WebRTCLibPeerConnection::_parse_ice_server(RtcConfiguration &r_config, Dictionary p_server) {
-	// TODO
-#if 0
-	Variant v;
-	webrtc::PeerConnectionInterface::IceServer ice_server;
-	String url;
-
+Error WebRTCLibPeerConnection::_parse_ice_server(rtc::Configuration &r_config, Dictionary p_server) {
 	ERR_FAIL_COND_V(!p_server.has("urls"), ERR_INVALID_PARAMETER);
 
 	// Parse mandatory URL
-	Variant nil;
-	v = DICT_GET(p_server, "urls");
-	if (v.get_type() == Variant::STRING) {
-		url = v;
-		ice_server.urls.push_back(url.utf8().get_data());
-	} else if (v.get_type() == Variant::ARRAY) {
-		Array names = v;
-		for (int j = 0; j < names.size(); j++) {
-			v = names[j];
-			ERR_FAIL_COND_V(v.get_type() != Variant::STRING, ERR_INVALID_PARAMETER);
-			url = v;
-			ice_server.urls.push_back(url.utf8().get_data());
-		}
+	Array urls;
+	Variant urls_var = p_server["urls"];
+	if (urls_var.get_type() == Variant::STRING) {
+		urls.push_back(urls_var);
+	} else if (urls_var.get_type() == Variant::ARRAY) {
+		urls = urls_var;
 	} else {
 		ERR_FAIL_V(ERR_INVALID_PARAMETER);
 	}
 	// Parse credentials (only meaningful for TURN, only support password)
-	if (p_server.has("username") && (v = DICT_GET(p_server, "username")) && v.get_type() == Variant::STRING) {
-		ice_server.username = (v.operator String()).utf8().get_data();
+	String username;
+	String credential;
+	if (p_server.has("username") && p_server["username"].get_type() == Variant::STRING) {
+		username = p_server["username"];
 	}
-	if (p_server.has("credential") && (v = DICT_GET(p_server, "credential")) && v.get_type() == Variant::STRING) {
-		ice_server.password = (v.operator String()).utf8().get_data();
+	if (p_server.has("credential") && p_server["credential"].get_type() == Variant::STRING) {
+		credential = p_server["credential"];
 	}
-
-	r_config.servers.push_back(ice_server);
-#endif
+	for (int i = 0; i < urls.size(); i++) {
+		rtc::IceServer srv(urls[i].operator String().utf8().get_data());
+		srv.username = username.utf8().get_data();
+		srv.password = credential.utf8().get_data();
+		r_config.iceServers.push_back(srv);
+	}
 	return OK;
 }
 
-Error WebRTCLibPeerConnection::_parse_channel_config(RtcDataChannelInit &r_config, const Dictionary &p_dict) {
+Error WebRTCLibPeerConnection::_parse_channel_config(rtc::DataChannelInit &r_config, const Dictionary &p_dict) {
 	Variant nil;
 	Variant v;
-#define _SET_N(PROP, PNAME, TYPE)          \
-	if (p_dict.has(#PROP)) {               \
-		v = DICT_GET(p_dict, #PROP);       \
-		if (v.get_type() == Variant::TYPE) \
-			r_config.PNAME = v;            \
+	if (p_dict.has("negotiated")) {
+		r_config.negotiated = p_dict["negotiated"].operator bool();
 	}
-#define _SET(PROP, TYPE) _SET_N(PROP, PROP, TYPE)
-	// TODO FIXME check supported?!?
-	_SET(negotiated, BOOL);
-	//_SET(id, INT); // TODO Why missing?
-	//_SET(maxPacketLifeTime, INT);
-	//_SET(maxRetransmits, INT);
-	_SET(ordered, BOOL);
-#undef _SET
-	if (p_dict.has("protocol") && (v = DICT_GET(p_dict, "protocol")) && v.get_type() == Variant::STRING) {
-		// TODO
-		//r_config.protocol = v.operator String().utf8().get_data();
+	if (p_dict.has("id")) {
+		// TODO FIXME UPSTREAM: IDs are assigned on creation, should be on offer:
+		// https://github.com/paullouisageneau/libdatachannel/issues/613
+		r_config.id = uint16_t(p_dict["id"].operator int32_t());
 	}
-
-	// ID makes sense only when negotiated is true (and must be set in that case)
-	// FIXME supported?
-	//ERR_FAIL_COND_V(r_config.negotiated ? r_config.id == -1 : r_config>id != -1, ERR_INVALID_PARAMETER);
-	// Only one of maxRetransmits and maxRetransmitTime can be set on a channel.
-	//ERR_FAIL_COND_V(r_config.maxRetransmits && r_config.maxRetransmitTime, ERR_INVALID_PARAMETER);
+	// If negotiated it must have an ID, and ID only makes sense when negotiated.
+	ERR_FAIL_COND_V(r_config.negotiated != r_config.id.has_value(), ERR_INVALID_PARAMETER);
+	// Channels cannot be both time-constrained and retry-constrained.
+	ERR_FAIL_COND_V(p_dict.has("maxPacketLifeTime") && p_dict.has("maxRetransmits"), ERR_INVALID_PARAMETER);
+	if (p_dict.has("maxPacketLifeTime")) {
+		r_config.reliability.type = rtc::Reliability::Type::Timed;
+		r_config.reliability.rexmit = std::chrono::milliseconds(p_dict["maxPacketLifeTime"].operator int32_t());
+	} else if (p_dict.has("maxRetransmits")) {
+		r_config.reliability.type = rtc::Reliability::Type::Rexmit;
+		r_config.reliability.rexmit = p_dict["maxRetransmits"].operator int32_t();
+	}
+	if (p_dict.has("ordered") && p_dict["ordered"].operator bool() == false) {
+		r_config.reliability.unordered = true;
+	}
+	if (p_dict.has("protocol")) {
+		r_config.protocol = p_dict["protocol"].operator String().utf8().get_data();
+	}
 	return OK;
-}
-
-void _on_ice_candidate(UINT64 p_user, PCHAR p_candidate) {
-	if (!p_candidate) {
-		return;
-	}
-	RtcIceCandidateInit session;
-	memset(&session, 0, sizeof(session));
-	WARN_PRINT(godot::String(p_candidate));
-	deserializeRtcIceCandidateInit(p_candidate, strlen(p_candidate), &session);
-	//godot::JSON *json = godot::JSON::get_singleton();
-	Ref<JSON> json;
-	json.instantiate();
-	Error err = json->parse(p_candidate);
-	ERR_FAIL_COND(err != OK);
-	Variant result = json->get_data();
-	ERR_FAIL_COND(result.get_type() != godot::Variant::DICTIONARY);
-	Dictionary dict = result;
-	ERR_FAIL_COND(!dict.has("candidate"));
-	ERR_FAIL_COND(!dict.has("sdpMLineIndex"));
-	ERR_FAIL_COND(!dict.has("sdpMid"));
-
-	godot::String sdp_candidate = dict["candidate"];
-	int sdp_mline = dict["sdpMLineIndex"];
-	godot::String sdp_mid = dict["sdpMid"];
-	((WebRTCLibPeerConnection *)p_user)->queue_signal("ice_candidate_created", 3, sdp_mid, sdp_mline, sdp_candidate);
-}
-
-void _on_data_channel(UINT64 p_user, RtcDataChannel *p_channel) {
-	WARN_PRINT("data channel received");
-	((WebRTCLibPeerConnection *)p_user)->queue_signal("data_channel_received", 1, WebRTCLibDataChannel::new_data_channel(p_channel));
-}
-
-void _on_connection_state_change(UINT64 p_user, RTC_PEER_CONNECTION_STATE p_state) {
-	WARN_PRINT("State: " + godot::String::num(p_state));
-}
-
-void WebRTCLibPeerConnection::queue_candidate(godot::String p_mid_name, int p_mline, godot::String p_candidate) {
-	godot::Array data;
-	data.push_back(p_mid_name);
-	data.push_back(p_mline);
-	data.push_back(p_candidate);
-	candidates.push_back(data);
-}
-
-void WebRTCLibPeerConnection::emit_candidates() {
-	while (candidates.size()) {
-		godot::Array sdp = candidates.pop_front();
-		queue_signal("ice_candidate_created", 3, sdp[0], sdp[1], sdp[2]);
-	}
 }
 
 int64_t WebRTCLibPeerConnection::_get_connection_state() const {
-#if 0
-	ERR_FAIL_COND_V(peer_connection.get() == nullptr, STATE_CLOSED);
+	ERR_FAIL_COND_V(peer_connection == nullptr, STATE_CLOSED);
 
-	webrtc::PeerConnectionInterface::IceConnectionState state = peer_connection->ice_connection_state();
+	rtc::PeerConnection::State state = peer_connection->state();
 	switch (state) {
-		case webrtc::PeerConnectionInterface::kIceConnectionNew:
+		case rtc::PeerConnection::State::New:
 			return STATE_NEW;
-		case webrtc::PeerConnectionInterface::kIceConnectionChecking:
+		case rtc::PeerConnection::State::Connecting:
 			return STATE_CONNECTING;
-		case webrtc::PeerConnectionInterface::kIceConnectionConnected:
+		case rtc::PeerConnection::State::Connected:
 			return STATE_CONNECTED;
-		case webrtc::PeerConnectionInterface::kIceConnectionCompleted:
-			return STATE_CONNECTED;
-		case webrtc::PeerConnectionInterface::kIceConnectionFailed:
-			return STATE_FAILED;
-		case webrtc::PeerConnectionInterface::kIceConnectionDisconnected:
+		case rtc::PeerConnection::State::Disconnected:
 			return STATE_DISCONNECTED;
-		case webrtc::PeerConnectionInterface::kIceConnectionClosed:
-			return STATE_CLOSED;
+		case rtc::PeerConnection::State::Failed:
+			return STATE_FAILED;
 		default:
 			return STATE_CLOSED;
 	}
-#endif
-	return STATE_CLOSED;
 }
 
 int64_t WebRTCLibPeerConnection::_initialize(const Dictionary &p_config) {
-	RtcConfiguration config;
-	memset(&config, 0, sizeof(config));
-
-	Variant nil;
-	Variant v;
-#if 0
-	if (p_config.has("iceServers") && (v = DICT_GET(p_config, "iceServers")) && v.get_type() == Variant::ARRAY) {
-		Array servers = v;
+	rtc::Configuration config = {};
+	if (p_config.has("iceServers") && p_config["iceServers"].get_type() == Variant::ARRAY) {
+		Array servers = p_config["iceServers"];
 		for (int i = 0; i < servers.size(); i++) {
-			v = servers[i];
-			ERR_FAIL_COND_V(v.get_type() != Variant::DICTIONARY, ERR_INVALID_PARAMETER);
-			Dictionary server = v;
+			ERR_FAIL_COND_V(servers[i].get_type() != Variant::DICTIONARY, ERR_INVALID_PARAMETER);
+			Dictionary server = servers[i];
 			Error err = _parse_ice_server(config, server);
 			ERR_FAIL_COND_V(err != OK, FAILED);
 		}
 	}
-#endif
 	return (int64_t)_create_pc(config);
 }
 
-Object *WebRTCLibPeerConnection::_create_data_channel(const String &p_channel, const Dictionary &p_channel_config) {
+Object *WebRTCLibPeerConnection::_create_data_channel(const String &p_channel, const Dictionary &p_channel_config) try {
 	ERR_FAIL_COND_V(!peer_connection, nullptr);
 
 	// Read config from dictionary
-	RtcDataChannelInit config;
-	memset(&config, 0, sizeof(config));
+	rtc::DataChannelInit config;
 
 	Error err = _parse_channel_config(config, p_channel_config);
 	ERR_FAIL_COND_V(err != OK, nullptr);
 
-	RtcDataChannel *ch = nullptr;
-	STATUS status = createDataChannel(peer_connection, (PCHAR)p_channel.utf8().get_data(), &config, &ch);
-	ERR_FAIL_COND_V(status != STATUS_SUCCESS, nullptr);
+	std::shared_ptr<rtc::DataChannel> ch = peer_connection->createDataChannel(p_channel.utf8().get_data(), config);
+	ERR_FAIL_COND_V(ch == nullptr, nullptr);
 
 	WebRTCLibDataChannel *wrapper = WebRTCLibDataChannel::new_data_channel(ch);
 	ERR_FAIL_COND_V(wrapper == nullptr, nullptr);
 	return wrapper;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(nullptr);
 }
 
-int64_t WebRTCLibPeerConnection::_create_offer() {
+int64_t WebRTCLibPeerConnection::_create_offer() try {
 	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
-	RtcSessionDescriptionInit session;
-	memset(&session, 0, sizeof(session));
-	STATUS err = createOffer(peer_connection, &session);
-	if (err != STATUS_SUCCESS) {
-		ERR_PRINT("createOffer failed with error " + String::num(err));
-		ERR_FAIL_V(FAILED);
+	ERR_FAIL_COND_V(_get_connection_state() != STATE_NEW, FAILED);
+	peer_connection->setLocalDescription(rtc::Description::Type::Offer);
+	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
+}
+
+int64_t WebRTCLibPeerConnection::_set_remote_description(const String &p_type, const String &p_sdp) try {
+	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
+	std::string sdp(p_sdp.utf8().get_data());
+	std::string type(p_type.utf8().get_data());
+	rtc::Description desc(sdp, type);
+	peer_connection->setRemoteDescription(desc);
+	// Automatically create the answer.
+	if (p_type == String("offer")) {
+		peer_connection->setLocalDescription(rtc::Description::Type::Answer);
 	}
-	queue_signal("session_description_created", 2, "offer", String(session.sdp));
+	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
+}
+
+int64_t WebRTCLibPeerConnection::_set_local_description(const String &p_type, const String &p_sdp) {
+	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
+	// XXX Library quirk. It doesn't seem possible to create offers/answers without setting the local description.
+	// Ignore this call for now to avoid crash (it's already set automatically!).
+	//peer_connection->setLocalDescription(p_type == String("offer") ? rtc::Description::Type::Offer : rtc::Description::Type::Answer);
 	return OK;
 }
 
-//#define _MAKE_DESC(TYPE, SDP, RTCERR) webrtc::CreateSessionDescription((String(TYPE) == String("offer") ? webrtc::SdpType::kOffer : webrtc::SdpType::kAnswer), SDP.utf8().get_data(), RTCERR)
-#define _MAKE_DESC(TYPE, SDP)                                                                    \
-	ERR_FAIL_COND_V(SDP.length() > MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, ERR_INVALID_PARAMETER); \
-	RtcSessionDescriptionInit session;                                                           \
-	memset(&session, 0, sizeof(session));                                                        \
-	session.type = String(TYPE) == "offer" ? SDP_TYPE_OFFER : SDP_TYPE_ANSWER;                   \
-	memcpy(session.sdp, SDP.get_data(), SDP.length());
-int64_t WebRTCLibPeerConnection::_set_remote_description(const String &type, const String &sdp) {
+int64_t WebRTCLibPeerConnection::_add_ice_candidate(const String &sdpMidName, int64_t sdpMlineIndexName, const String &sdpName) try {
 	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
-	_MAKE_DESC(type, sdp.utf8());
-	STATUS err = setRemoteDescription(peer_connection, &session);
-	if (err != STATUS_SUCCESS) {
-		ERR_PRINT("setRemoteDescription failed with error " + String::num(err));
-		ERR_FAIL_V(FAILED);
-	}
-	RtcSessionDescriptionInit answer;
-	memset(&answer, 0, sizeof(answer));
-	if (session.type != SDP_TYPE_OFFER) {
-		return OK;
-	}
-	err = createAnswer(peer_connection, &answer);
-	if (err != STATUS_SUCCESS) {
-		ERR_PRINT("createAnser failed with error " + String::num(err));
-		ERR_FAIL_V(FAILED);
-	}
-	queue_signal("session_description_created", 2, "answer", String(session.sdp));
+	rtc::Candidate candidate(sdpName.utf8().get_data(), sdpMidName.utf8().get_data());
+	peer_connection->addRemoteCandidate(candidate);
 	return OK;
-}
-
-int64_t WebRTCLibPeerConnection::_set_local_description(const String &type, const String &sdp) {
-	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
-	_MAKE_DESC(type, sdp.utf8());
-	STATUS err = setLocalDescription(peer_connection, &session);
-	if (err != STATUS_SUCCESS) {
-		ERR_PRINT("setLocalDescription failed with error " + String::num(err));
-		ERR_FAIL_V(FAILED);
-	}
-	return OK;
-}
-#undef _MAKE_DESC
-
-int64_t WebRTCLibPeerConnection::_add_ice_candidate(const String &sdpMidName, int64_t sdpMlineIndexName, const String &sdpName) {
-	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
-	WARN_PRINT(godot::String::num((uint64_t)this));
-
-	godot::Dictionary dict;
-	dict["candidate"] = godot::String(sdpName);
-	dict["sdpMid"] = godot::String(sdpMidName);
-	dict["sdpMLineIndex"] = sdpMlineIndexName;
-	godot::String config = "{\"candidate\":\"" + godot::String(sdpName) + "\",\"sdpMid\":\"" + godot::String::num(sdpMlineIndexName) + "\",\"sdpMLineIndex\":" + sdpMidName + "}";
-	WARN_PRINT(config);
-	RtcIceCandidateInit session;
-	STATUS err = deserializeRtcIceCandidateInit((char *)config.utf8().get_data(), config.utf8().length(), &session);
-	ERR_FAIL_COND_V(err != STATUS_SUCCESS, ERR_INVALID_PARAMETER);
-
-	err = addIceCandidate(peer_connection, session.candidate);
-	ERR_FAIL_COND_V(err != STATUS_SUCCESS, FAILED);
-	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
 }
 
 int64_t WebRTCLibPeerConnection::_poll() {
@@ -348,12 +239,12 @@ int64_t WebRTCLibPeerConnection::_poll() {
 
 void WebRTCLibPeerConnection::_close() {
 	if (peer_connection != nullptr) {
-		closePeerConnection(peer_connection);
-		freePeerConnection(&peer_connection);
-		peer_connection = nullptr;
+		try {
+			peer_connection->close();
+		} catch (...) {
+		}
 	}
 
-	peer_connection = nullptr;
 	while (!signal_queue.empty()) {
 		signal_queue.pop();
 	}
@@ -363,30 +254,43 @@ void WebRTCLibPeerConnection::_init() {
 #ifdef GDNATIVE_WEBRTC
 	register_interface(&interface);
 #endif
-	// initialize variables:
 	mutex_signal_queue = new std::mutex;
 
-	RtcConfiguration config;
-	memset(&config, 0, sizeof(config));
-	_create_pc(config);
+	_initialize(Dictionary());
 }
 
-Error WebRTCLibPeerConnection::_create_pc(RtcConfiguration &r_config) {
-	// TODO free old peerconnection.
-	r_config.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
-	STATUS err = createPeerConnection(&r_config, &peer_connection);
-	if (err != STATUS_SUCCESS) {
-		WARN_PRINT("Error creating PeerConnection: " + godot::String::num(err));
-		return FAILED;
-	}
-	err = peerConnectionOnIceCandidate(peer_connection, (UINT64)this, _on_ice_candidate);
-	ERR_FAIL_COND_V(err, FAILED);
-	err = peerConnectionOnDataChannel(peer_connection, (UINT64)this, _on_data_channel);
-	ERR_FAIL_COND_V(err, FAILED);
-	err = peerConnectionOnConnectionStateChange(peer_connection, (UINT64)this, _on_connection_state_change);
-	ERR_FAIL_COND_V(err, FAILED);
+Error WebRTCLibPeerConnection::_create_pc(rtc::Configuration &r_config) try {
+	// Prevents libdatachannel from automatically creating offers.
+	r_config.disableAutoNegotiation = true;
 
+	peer_connection = std::make_shared<rtc::PeerConnection>(r_config);
+	ERR_FAIL_COND_V(!peer_connection, FAILED);
+
+	// TODO "this" is not correct. "this" make memory go boom!
+	peer_connection->onLocalDescription([this](rtc::Description description) {
+		String type = description.type() == rtc::Description::Type::Offer ? "offer" : "answer";
+		queue_signal("session_description_created", 2, type, String(std::string(description).c_str()));
+	});
+	peer_connection->onLocalCandidate([this](rtc::Candidate candidate) {
+		// TODO Is 0 okay?
+		queue_signal("ice_candidate_created", 3, String(candidate.mid().c_str()), 0, String(candidate.candidate().c_str()));
+	});
+	peer_connection->onDataChannel([this](std::shared_ptr<rtc::DataChannel> channel) {
+		queue_signal("data_channel_received", 1, WebRTCLibDataChannel::new_data_channel(channel));
+	});
+	/*
+	peer_connection->onStateChange([](rtc::PeerConnection::State state) {
+		std::cout << "[State: " << state << "]" << std::endl;
+	});
+
+	peer_connection->onGatheringStateChange([](rtc::PeerConnection::GatheringState state) {
+		std::cout << "[Gathering State: " << state << "]" << std::endl;
+	});
+	*/
 	return OK;
+} catch (const std::exception &e) {
+	ERR_PRINT(e.what());
+	ERR_FAIL_V(FAILED);
 }
 
 WebRTCLibPeerConnection::WebRTCLibPeerConnection() {

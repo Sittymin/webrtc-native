@@ -3,7 +3,6 @@ on: [push, pull_request]
 
 env:
   GODOT_VERSION: '4'
-  GODOT_CPP: 'godot-cpp'
 
 jobs:
   static-checks:
@@ -42,67 +41,67 @@ jobs:
         include:
           # Android
           - platform: android
-            arch: 'x86'
-            sconsflags: 'android_arch=x86'
+            arch: 'x86_32'
+            sconsflags: ''
             os: 'ubuntu-20.04'
           - platform: android
-            arch: 'x64'
-            sconsflags: 'android_arch=x86_64'
+            arch: 'x86_64'
+            sconsflags: ''
             os: 'ubuntu-20.04'
           - platform: android
-            arch: 'arm'
-            sconsflags: 'android_arch=armv7'
+            arch: 'arm32'
+            sconsflags: ''
             os: 'ubuntu-20.04'
           - platform: android
             arch: 'arm64'
-            sconsflags: 'android_arch=arm64v8'
+            sconsflags: ''
             os: 'ubuntu-20.04'
 
-#          # iOS
-#          - platform: ios
-#            arch: 'x64'
-#            sconsflags: 'ios_arch=x86_64 ios_simulator=true'
-#            os: 'macos-latest'
-#          - platform: ios
-#            arch: 'arm64'
-#            sconsflags: 'ios_arch=arm64'
-#            os: 'macos-11'
-#
-#          # Linux
-#          - platform: linux
-#            arch: 'x86'
-#            sconsflags: 'bits=32 use_llvm=yes'
-#            os: 'ubuntu-20.04'
-#          - platform: linux
-#            arch: 'x64'
-#            sconsflags: 'bits=64 use_llvm=yes'
-#            os: 'ubuntu-20.04'
-#
-#          # macOS
-#          - platform: osx
-#            arch: 'x64'
-#            sconsflags: 'bits=64'
-#            os: 'macos-11'
-#          - platform: osx
-#            arch: 'arm64'
-#            sconsflags: 'bits=64 macos_arch=arm64'
-#            os: 'macos-11'
-#
-#          # Windows
-#          - platform: windows
-#            arch: 'x86'
-#            sconsflags: 'bits=32'
-#            os: 'windows-2019'
-#            msvc_arch: amd64_x86
-#          - platform: windows
-#            arch: 'x64'
-#            sconsflags: 'bits=64'
-#            os: 'windows-2019'
-#            msvc_arch: amd64
+          # iOS
+          - platform: ios
+            arch: 'x86_64'
+            sconsflags: 'ios_simulator=true'
+            os: 'macos-latest'
+          - platform: ios
+            arch: 'arm64'
+            sconsflags: ''
+            os: 'macos-11'
+
+
+          # Linux
+          - platform: linux
+            arch: 'x86_32'
+            sconsflags: ''
+            os: 'ubuntu-20.04'
+          - platform: linux
+            arch: 'x86_64'
+            sconsflags: ''
+            os: 'ubuntu-20.04'
+
+          # macOS
+          - platform: osx
+            arch: 'x86_64'
+            sconsflags: ''
+            os: 'macos-11'
+          - platform: osx
+            arch: 'arm64'
+            sconsflags: ''
+            os: 'macos-11'
+
+          # Windows
+          - platform: windows
+            arch: 'x86_32'
+            sconsflags: 'use_mingw=yes'
+            os: 'ubuntu-20.04'
+            msvc_arch: amd64_x86
+          - platform: windows
+            arch: 'x86_64'
+            sconsflags: 'use_mingw=yes'
+            os: 'ubuntu-20.04'
+            msvc_arch: amd64
 
     env:
-      SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} --jobs=2
-      MSVC_VARS: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat'
+      SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} arch=${{ matrix.arch }} --jobs=2
 
     defaults:
       run:
@@ -113,14 +112,22 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup MSVC build environment for ${{ matrix.msvc_arch }}
+      - name: Install Windows build dependencies
         if: ${{ matrix.platform == 'windows' }}
-        run: "'${{ env.MSVC_VARS }}' ${{ matrix.msvc_arch }}"
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential mingw-w64
+          sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-posix
+          sudo update-alternatives --set i686-w64-mingw32-g++ /usr/bin/i686-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          dpkg -l | grep ii | grep mingw
+          update-alternatives --get-selections | grep mingw
 
       - name: Install Linux build dependencies
         if: ${{ matrix.platform == 'linux' }}
         run: |
-          sudo apt-get install build-essential gcc-multilib wget g++-multilib
+          sudo apt-get install build-essential gcc-multilib g++-multilib
 
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
@@ -134,20 +141,7 @@ jobs:
           python -m pip install scons
           python --version
           scons --version
-
-      - name: Get WebRTC package for ${{ matrix.platform }} - ${{ matrix.arch }}
-        uses: ./.github/actions/webrtc-download
-        with:
-          platform: ${{ matrix.platform }}
-          archs: ${{ matrix.arch }}
-
-      - name: Fix godot-cpp for Godot 4.
-        shell: bash
-        run: |
-          if [ "${GODOT_VERSION}" != "3" ]; then
-              cd ${GODOT_CPP}
-              patch -p1 < ../misc/patches/scons.diff
-          fi
+          cmake --version
 
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - debug
         run: |
@@ -168,10 +162,23 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v2
         with:
           path: artifacts
+
+      - name: Bundle licenses.
+        run: |
+          cp LICENSE artifacts/LICENSE.webrtc-native
+          cp deps/libdatachannel/LICENSE artifacts/LICENSE.libdatachannel
+          cp deps/openssl/LICENSE.txt artifacts/LICENSE.openssl
+          cp deps/libdatachannel/deps/libjuice/LICENSE artifacts/LICENSE.libjuice
+          cp deps/libdatachannel/deps/usrsctp/LICENSE.md artifacts/LICENSE.usrsctp
+          cp deps/libdatachannel/deps/libsrtp/LICENSE artifacts/LICENSE.libsrtp
+          cp deps/libdatachannel/deps/json/LICENSE.MIT artifacts/LICENSE.json
+          cp deps/libdatachannel/deps/plog/LICENSE artifacts/LICENSE.plog
 
       - name: Package artifacts for release
         run: |
@@ -181,7 +188,8 @@ jobs:
           do
             mkdir -p ${name}/lib/
             find ../artifacts -wholename "*/${name}/lib/*" | xargs cp -t ${name}/lib/
-            find ../artifacts -wholename "*/${name}/${name}.tres" | head -n 1 | xargs cp -t ${name}/
+            find ../artifacts -wholename "*/${name}/${name}.tres" -or -wholename "*/${name}/${name}.gdextension" | head -n 1 | xargs cp -t ${name}/
+            find ../artifacts -wholename "*/LICENSE*" | xargs cp -t ${name}/
           done
 
           zip -r godot-webrtc-native-release.zip webrtc

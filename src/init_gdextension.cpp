@@ -28,6 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
+#include <godot/gdnative_interface.h>
+
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
@@ -38,13 +40,21 @@
 using namespace godot;
 using namespace godot_webrtc;
 
-void register_webrtc_extension_types() {
+void register_webrtc_extension_types(ModuleInitializationLevel p_level) {
+	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
+		return;
+	}
+
 	WebRTCLibPeerConnection::initialize_signaling();
 	godot::ClassDB::register_class<WebRTCLibDataChannel>();
 	godot::ClassDB::register_class<WebRTCLibPeerConnection>();
 }
 
-void unregister_webrtc_extension_types() {
+void unregister_webrtc_extension_types(ModuleInitializationLevel p_level) {
+	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
+		return;
+	}
+
 	WebRTCLibPeerConnection::deinitialize_signaling();
 }
 
@@ -52,8 +62,9 @@ extern "C" {
 GDNativeBool GDN_EXPORT webrtc_extension_init(const GDNativeInterface *p_interface, const GDNativeExtensionClassLibraryPtr p_library, GDNativeInitialization *r_initialization) {
 	GDExtensionBinding::InitObject init_obj(p_interface, p_library, r_initialization);
 
-	init_obj.register_module_initializer(register_webrtc_extension_types);
-	init_obj.register_module_terminator(unregister_webrtc_extension_types);
+	init_obj.register_initializer(register_webrtc_extension_types);
+	init_obj.register_terminator(unregister_webrtc_extension_types);
+	init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
 
 	return init_obj.init();
 }

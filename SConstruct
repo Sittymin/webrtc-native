@@ -2,6 +2,8 @@
 
 import os, sys, platform, json, subprocess
 
+import builders
+
 if sys.version_info < (3,):
 
     def decode_utf8(x):
@@ -28,6 +30,7 @@ def gen_gdnative_lib(target, source, env):
                 decode_utf8(source[0].get_contents())
                 .replace("{GDNATIVE_PATH}", os.path.splitext(t.name)[0])
                 .replace("{TARGET}", env["target"])
+                .replace("{ARCH}", env["arch"] if "arch" in env else "")
             )
 
 
@@ -37,103 +40,51 @@ opts.Add(EnumVariable("godot_version", "The Godot target version", "4", ["3", "4
 opts.Update(env)
 
 if env["godot_version"] == "3":
-    env = SConscript("godot-cpp-3.x/SConstruct")
+    env = SConscript("godot-cpp-3.x/SConstruct").Clone()
+    # Require C++17
+    if sys.platform == "win32" or sys.platform == "msys" and env["platform"] == "windows" and not env["use_mingw"]:
+        # MSVC
+        env.Append(CCFLAGS=["/std:c++17", "/DDEBUG_ENABLED"])
+        if env["target"] == "debug":
+            env.Append(CCFLAGS=["/DDEBUG_ENABLED"])
+    else:
+        env.Append(CCFLAGS=["-std=c++17"])
+        if env["target"] == "debug":
+            env.Append(CCFLAGS=["-DDEBUG_ENABLED"])
+
+    opts.Add(("arch", "", ""))
+    opts.Update(env)
 else:
-    env = SConscript("godot-cpp/SConstruct")
-env = env.Clone()
+    ARGUMENTS["ios_min_version"] = "11.0"
+    env = SConscript("godot-cpp/SConstruct").Clone()
 opts.Update(env)
 
+# Add method to generated gdnative lib
 env.Append(BUILDERS={"GDNativeLibBuilder": Builder(action=gen_gdnative_lib)})
 
 target = env["target"]
 result_path = os.path.join("bin", "webrtc" if env["target"] == "release" else "webrtc_debug", "lib")
 
-# Convenience check to enforce the use_llvm overrides when CXX is clang(++)
-if "CXX" in env and "clang" in os.path.basename(env["CXX"]):
-    env["use_llvm"] = True
+# Dependencies
+deps_source_dir = "deps"
+env.Append(BUILDERS={
+    "BuildOpenSSL": env.Builder(action=builders.ssl_action, emitter=builders.ssl_emitter),
+    "BuildLibDataChannel": env.Builder(action=builders.rtc_action, emitter=builders.rtc_emitter),
+})
 
-# WebRTC stuff
-rtc_dir = "kinesis"
-rtc_includes = [rtc_dir + "/include/deps", rtc_dir + "/include/sdk"]
-libs = ['libkvspic', 'libcrypto', 'libssl', 'libusrsctp', 'libsrtp2', 'libkvsWebrtcClient', 'libkvspicState', 'libkvspicUtils']
-libs.reverse()
-lib_path = os.path.join(rtc_dir, env["platform"])
+# SSL
+ssl = env.BuildOpenSSL(env.Dir(builders.get_ssl_build_dir(env)), env.Dir(builders.get_ssl_source_dir(env)))
 
-target_platform = env["platform"]
-target_arch = env["bits"]
-if target_platform == "android":
-    target_arch = env["android_arch"]
-elif target_platform == "ios":
-    target_arch = env["ios_arch"]
-elif target_platform == "osx":
-    if env["macos_arch"] != "universal":
-        target_arch = env["macos_arch"]
+env.Prepend(CPPPATH=[builders.get_ssl_include_dir(env)])
+env.Prepend(LIBPATH=[builders.get_ssl_build_dir(env)])
+env.Append(LIBS=[ssl])
 
-lib_path += {
-    "32": "/x86",
-    "64": "/x64",
-    "armv7": "/arm",
-    "arm64v8": "/arm64",
-    "arm64": "/arm64",
-    "x86": "/x86",
-    "x86_64": "/x64",
-}[target_arch]
+# RTC
+rtc = env.BuildLibDataChannel(env.Dir(builders.get_rtc_build_dir(env)), [env.Dir(builders.get_rtc_source_dir(env))] + ssl)
 
-if target == "debug":
-    lib_path += "/Debug"
-else:
-    lib_path += "/Release"
-
-env.Append(CPPPATH=rtc_includes)
-
-#if target_platform == "linux":
-#    env.Append(LIBS=["atomic"])
-#    env.Append(LIBPATH=[lib_path])
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_LINUX"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#elif target_platform == "windows":
-#    # Mostly VisualStudio
-#    if env["CC"] == "cl":
-#        env.Append(CCFLAGS=["/DWEBRTC_WIN", "/DWIN32_LEAN_AND_MEAN", "/DNOMINMAX", "/DRTC_UNUSED=", "/DNO_RETURN="])
-#        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm"] + libs])
-#    # Mostly "gcc"
-#    else:
-#        env.Append(
-#            CCFLAGS=[
-#                "-DWINVER=0x0603",
-#                "-D_WIN32_WINNT=0x0603",
-#                "-DWEBRTC_WIN",
-#                "-DWIN32_LEAN_AND_MEAN",
-#                "-DNOMINMAX",
-#                "-DRTC_UNUSED=",
-#                "-DNO_RETURN=",
-#            ]
-#        )
-#        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm"] + libs])
-#
-#elif target_platform == "osx":
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_MAC"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#elif target_platform == "ios":
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_MAC", "-DWEBRTC_IOS"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#elif target_platform == "android":
-#    env.Append(LIBS=["log"])
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_LINUX", "-DWEBRTC_ANDROID"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#    if target_arch == "arm64v8":
-#        env.Append(CCFLAGS=["-DWEBRTC_ARCH_ARM64", "-DWEBRTC_HAS_NEON"])
-#    elif target_arch == "armv7":
-#        env.Append(CCFLAGS=["-DWEBRTC_ARCH_ARM", "-DWEBRTC_ARCH_ARM_V7", "-DWEBRTC_HAS_NEON"])
-
-
-env.Append(LIBPATH=[lib_path])
-if target_platform != "windows":
-    env.Append(LIBS=libs)
+env.Append(LIBPATH=[builders.get_rtc_build_dir(env)])
+env.Append(CPPPATH=[builders.get_rtc_include_dir(env)])
+env.Prepend(LIBS=[rtc])
 
 # Our includes and sources
 env.Append(CPPPATH=["src/"])
@@ -151,8 +102,11 @@ else:
     sources.append("src/init_gdnative.cpp")
     add_sources(sources, "src/net/", "cpp")
 
+env.Depends(sources, [ssl, rtc])
+
 # Make the shared library
 result_name = "webrtc_native.{}.{}.{}{}".format(env["platform"], env["target"], env["arch_suffix"], env["SHLIBSUFFIX"])
+env.Depends(sources, ssl)
 library = env.SharedLibrary(target=os.path.join(result_path, result_name), source=sources)
 Default(library)
 
@@ -160,4 +114,5 @@ Default(library)
 gdnlib = "webrtc"
 if target != "release":
     gdnlib += "_debug"
-Default(env.GDNativeLibBuilder([os.path.join("bin", gdnlib, gdnlib + ".tres")], ["misc/gdnlib.tres"]))
+ext = ".tres" if env["godot_version"] == "3" else ".gdextension"
+Default(env.GDNativeLibBuilder([os.path.join("bin", gdnlib, gdnlib + ext)], ["misc/webrtc" + ext]))
