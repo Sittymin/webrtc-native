@@ -57,10 +57,6 @@ env.Append(BUILDERS={"GDNativeLibBuilder": Builder(action=gen_gdnative_lib)})
 target = env["target"]
 result_path = os.path.join("bin", "webrtc" if env["target"] == "release" else "webrtc_debug", "lib")
 
-# Convenience check to enforce the use_llvm overrides when CXX is clang(++)
-if "CXX" in env and "clang" in os.path.basename(env["CXX"]):
-    env["use_llvm"] = True
-
 # WebRTC stuff
 rtc_dir = "libdatachannel"
 rtc_includes = [rtc_dir + "/include"]
