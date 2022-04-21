@@ -69,27 +69,30 @@ void WebRTCLibDataChannel::bind_channel(std::shared_ptr<rtc::DataChannel> p_chan
 	ERR_FAIL_COND(!p_channel);
 
 	channel = p_channel;
+
+	// TODO "this" is not correct. "this" make memory go boom!
+	p_channel->onMessage([this](auto message) {
+		if (std::holds_alternative<rtc::string>(message)) {
+			rtc::string str = std::get<rtc::string>(message);
+			queue_packet(reinterpret_cast<const uint8_t *>(str.c_str()), str.size());
+		} else if (std::holds_alternative<rtc::binary>(message)) {
+			rtc::binary bin = std::get<rtc::binary>(message);
+			queue_packet(reinterpret_cast<const uint8_t *>(&bin[0]), bin.size());
+		} else {
+			ERR_PRINT("Message parsing bug. Unknown message type.");
+		}
+	});
+	/*
 	p_channel->onOpen([]() {
 		std::cout << "Open" << std::endl;
 	});
 	p_channel->onClosed([]() {
-		WARN_PRINT("Closed!");
 		std::cout << "Closed" << std::endl;
 	});
+	*/
 	p_channel->onError([](auto error) {
-		ERR_PRINT("Error!");
-		std::cout << "Error! " << std::string(error) << std::endl;
+		ERR_PRINT("Channel Error: " + String(std::string(error).c_str()));
 	});
-	p_channel->onMessage([](auto data) {
-		// TODO
-		std::cout << "Fun fun fun fun ================================" << std::endl;
-	});
-	//p_channel->onMessage([](std::vector<std::byte> data) {
-	//	// TODO
-	//	std::cout << "Fun fun fun fun ================================" << std::endl;
-	//}, [](std::string data) {
-	//	std::cout << data << std::endl;
-	//});
 }
 
 void WebRTCLibDataChannel::queue_packet(const uint8_t *data, uint32_t size) {
@@ -128,7 +131,7 @@ String WebRTCLibDataChannel::_get_label() const {
 
 bool WebRTCLibDataChannel::_is_ordered() const {
 	ERR_FAIL_COND_V(!channel, false);
-	return false; // TODO
+	return channel->reliability().unordered == false;
 }
 
 int64_t WebRTCLibDataChannel::_get_id() const {
@@ -138,12 +141,12 @@ int64_t WebRTCLibDataChannel::_get_id() const {
 
 int64_t WebRTCLibDataChannel::_get_max_packet_life_time() const {
 	ERR_FAIL_COND_V(!channel, 0);
-	return 0; // TODO
+	return channel->reliability().type == rtc::Reliability::Type::Timed ? std::get<std::chrono::milliseconds>(channel->reliability().rexmit).count() : -1;
 }
 
 int64_t WebRTCLibDataChannel::_get_max_retransmits() const {
 	ERR_FAIL_COND_V(!channel, 0);
-	return 0; // TODO
+	return channel->reliability().type == rtc::Reliability::Type::Rexmit ? std::get<int>(channel->reliability().rexmit) : -1;
 }
 
 String WebRTCLibDataChannel::_get_protocol() const {
@@ -162,7 +165,7 @@ int64_t WebRTCLibDataChannel::_get_buffered_amount() const {
 }
 
 int64_t WebRTCLibDataChannel::_poll() {
-	return 0;
+	return OK;
 }
 
 void WebRTCLibDataChannel::_close() {
@@ -191,10 +194,7 @@ int64_t WebRTCLibDataChannel::_get_packet(const uint8_t **r_buffer, int32_t *r_l
 int64_t WebRTCLibDataChannel::_put_packet(const uint8_t *p_buffer, int64_t p_len) {
 	ERR_FAIL_COND_V(!channel, FAILED);
 	ERR_FAIL_COND_V(channel->isClosed(), FAILED);
-	WARN_PRINT("Sending... " + String::num(_get_ready_state()));
-	// TODO binary vs string
-	channel->send(std::string("OMG String!"));
-	//channel->send((std::byte *)p_buffer, p_len);
+	channel->send(reinterpret_cast<const std::byte *>(p_buffer), p_len);
 	return 0;
 }
 
@@ -203,7 +203,7 @@ int64_t WebRTCLibDataChannel::_get_available_packet_count() const {
 }
 
 int64_t WebRTCLibDataChannel::_get_max_packet_size() const {
-	return 1200;
+	return 1200; // TODO
 }
 
 void WebRTCLibDataChannel::_register_methods() {

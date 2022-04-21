@@ -121,6 +121,9 @@ Error WebRTCLibPeerConnection::_parse_channel_config(rtc::DataChannelInit &r_con
 		r_config.negotiated = p_dict["negotiated"].operator bool();
 	}
 	if (p_dict.has("id")) {
+		// TODO FIXME UPSTREAM: ID must be even or it will be shifted.
+		// src/impl/peerconnection.cpp:997 (shiftDataChannels)
+		// src/impl/datachannel.cpp:186 (shiftStream)
 		r_config.id = uint16_t(p_dict["id"].operator int32_t());
 	}
 	// If negotiated it must have an ID, and ID only makes sense when negotiated.
