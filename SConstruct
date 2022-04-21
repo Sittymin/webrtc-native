@@ -41,9 +41,9 @@ if env["godot_version"] == "3":
     # Require C++17
     if sys.platform == "win32" or sys.platform == "msys" and env["platform"] == "windows" and not env["use_mingw"]:
         # MSVC
-        env.Append(CCFLAGS=["/std:c++17"])
+        env.Append(CCFLAGS=["/std:c++17", "/DDEBUG_ENABLED"])
     else:
-        env.Append(CCFLAGS=["-std=c++17"])
+        env.Append(CCFLAGS=["-std=c++17", "-DDEBUG_ENABLED"])
 else:
     env = SConscript("godot-cpp/SConstruct").Clone()
 opts.Update(env)

@@ -207,10 +207,11 @@ int64_t WebRTCLibPeerConnection::_set_remote_description(const String &p_type, c
 
 int64_t WebRTCLibPeerConnection::_set_local_description(const String &p_type, const String &p_sdp) {
 	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
-	peer_connection->setLocalDescription(p_type == String("offer") ? rtc::Description::Type::Offer : rtc::Description::Type::Answer);
+	// XXX Library quirk. It doesn't seem possible to create offers/answers without setting the local description.
+	// Ignore this call for now to avoid crash (it's already set automatically!).
+	//peer_connection->setLocalDescription(p_type == String("offer") ? rtc::Description::Type::Offer : rtc::Description::Type::Answer);
 	return OK;
 }
-#undef _MAKE_DESC
 
 int64_t WebRTCLibPeerConnection::_add_ice_candidate(const String &sdpMidName, int64_t sdpMlineIndexName, const String &sdpName) {
 	ERR_FAIL_COND_V(!peer_connection, ERR_UNCONFIGURED);
