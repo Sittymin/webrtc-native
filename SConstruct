@@ -95,51 +95,6 @@ else:
 
 env.Append(CPPPATH=rtc_includes)
 
-#if target_platform == "linux":
-#    env.Append(LIBS=["atomic"])
-#    env.Append(LIBPATH=[lib_path])
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_LINUX"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#elif target_platform == "windows":
-#    # Mostly VisualStudio
-#    if env["CC"] == "cl":
-#        env.Append(CCFLAGS=["/DWEBRTC_WIN", "/DWIN32_LEAN_AND_MEAN", "/DNOMINMAX", "/DRTC_UNUSED=", "/DNO_RETURN="])
-#        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm"] + libs])
-#    # Mostly "gcc"
-#    else:
-#        env.Append(
-#            CCFLAGS=[
-#                "-DWINVER=0x0603",
-#                "-D_WIN32_WINNT=0x0603",
-#                "-DWEBRTC_WIN",
-#                "-DWIN32_LEAN_AND_MEAN",
-#                "-DNOMINMAX",
-#                "-DRTC_UNUSED=",
-#                "-DNO_RETURN=",
-#            ]
-#        )
-#        env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in ["secur32", "advapi32", "winmm"] + libs])
-#
-#elif target_platform == "osx":
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_MAC"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#elif target_platform == "ios":
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_MAC", "-DWEBRTC_IOS"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#elif target_platform == "android":
-#    env.Append(LIBS=["log"])
-#    env.Append(CCFLAGS=["-DWEBRTC_POSIX", "-DWEBRTC_LINUX", "-DWEBRTC_ANDROID"])
-#    env.Append(CCFLAGS=["-DRTC_UNUSED=''", "-DNO_RETURN=''"])
-#
-#    if target_arch == "arm64v8":
-#        env.Append(CCFLAGS=["-DWEBRTC_ARCH_ARM64", "-DWEBRTC_HAS_NEON"])
-#    elif target_arch == "armv7":
-#        env.Append(CCFLAGS=["-DWEBRTC_ARCH_ARM", "-DWEBRTC_ARCH_ARM_V7", "-DWEBRTC_HAS_NEON"])
-
-
 env.Append(LIBPATH=[lib_path])
 if target_platform != "windows":
     env.Append(LIBS=libs)
