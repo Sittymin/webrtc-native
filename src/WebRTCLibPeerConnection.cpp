@@ -244,7 +244,8 @@ void WebRTCLibPeerConnection::_close() {
 	if (peer_connection != nullptr) {
 		try {
 			peer_connection->close();
-		} catch (...) { /* */ }
+		} catch (...) {
+		}
 	}
 
 	while (!signal_queue.empty()) {

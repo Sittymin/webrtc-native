@@ -173,7 +173,8 @@ void WebRTCLibDataChannel::_close() try {
 	if (channel) {
 		channel->close();
 	}
-} catch (...) { /* */ }
+} catch (...) {
+}
 
 int64_t WebRTCLibDataChannel::_get_packet(const uint8_t **r_buffer, int32_t *r_len) {
 	ERR_FAIL_COND_V(packet_queue.empty(), ERR_UNAVAILABLE);
@@ -201,7 +202,6 @@ int64_t WebRTCLibDataChannel::_put_packet(const uint8_t *p_buffer, int64_t p_len
 	ERR_PRINT(e.what());
 	ERR_FAIL_V(FAILED);
 }
-
 
 int64_t WebRTCLibDataChannel::_get_available_packet_count() const {
 	return packet_queue.size();

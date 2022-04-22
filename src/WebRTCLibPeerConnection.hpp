@@ -118,7 +118,6 @@ private:
 
 	std::mutex *mutex_signal_queue = nullptr;
 	std::queue<Signal> signal_queue;
-
 };
 
 } // namespace godot_webrtc
