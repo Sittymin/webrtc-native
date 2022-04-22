@@ -116,10 +116,8 @@ jobs:
         if: ${{ matrix.platform == 'windows' }}
         run: |
           sudo apt-get install build-essential mingw-w64
-          sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-win32
-          sudo update-alternatives --set i686-w64-mingw32-g++ /usr/bin/i686-w64-mingw32-g++-win32
-          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-win32
-          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-win32
+          dpkg -l | grep ii | grep mingw
+          update-alternatives --get-selections | grep mingw
 
       - name: Install Linux build dependencies
         if: ${{ matrix.platform == 'linux' }}
