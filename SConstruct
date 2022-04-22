@@ -1,5 +1,7 @@
 #!python
 
+from builders import build_deps
+
 import os, sys, platform, json, subprocess
 
 if sys.version_info < (3,):
@@ -52,48 +54,20 @@ else:
     env = SConscript("godot-cpp/SConstruct").Clone()
 opts.Update(env)
 
+# Add method that joins/compiles our Engine files.
+env.AddMethod(build_deps, "BuildDeps")
+# Add method to generated gdnative lib
 env.Append(BUILDERS={"GDNativeLibBuilder": Builder(action=gen_gdnative_lib)})
 
 target = env["target"]
 result_path = os.path.join("bin", "webrtc" if env["target"] == "release" else "webrtc_debug", "lib")
 
-# WebRTC stuff
-rtc_dir = "libdatachannel"
-rtc_includes = [rtc_dir + "/include"]
-libs = ['ssl', 'usrsctp', 'libjuice-static', 'datachannel-static']
-libs.reverse()
-lib_path = os.path.join(rtc_dir, env["platform"])
+# Dependencies
+deps_source_dir = "deps"
 
-target_platform = env["platform"]
-target_arch = env["bits"]
-if target_platform == "android":
-    target_arch = env["android_arch"]
-elif target_platform == "ios":
-    target_arch = env["ios_arch"]
-elif target_platform == "osx":
-    if env["macos_arch"] != "universal":
-        target_arch = env["macos_arch"]
-
-lib_path += {
-    "32": "/x86",
-    "64": "/x64",
-    "armv7": "/arm",
-    "arm64v8": "/arm64",
-    "arm64": "/arm64",
-    "x86": "/x86",
-    "x86_64": "/x64",
-}[target_arch]
-
-if target == "debug":
-    lib_path += "/Debug"
-else:
-    lib_path += "/Release"
-
-env.Append(CPPPATH=rtc_includes)
-
-env.Append(LIBPATH=[lib_path])
-if target_platform != "windows":
-    env.Append(LIBS=libs)
+# Build libdatachannel dependencies
+deps = env.BuildDeps("build-deps", deps_source_dir)
+env.NoCache(deps)
 
 # Our includes and sources
 env.Append(CPPPATH=["src/"])
@@ -114,6 +88,7 @@ else:
 # Make the shared library
 result_name = "webrtc_native.{}.{}.{}{}".format(env["platform"], env["target"], env["arch_suffix"], env["SHLIBSUFFIX"])
 library = env.SharedLibrary(target=os.path.join(result_path, result_name), source=sources)
+env.Depends(library, deps)
 Default(library)
 
 # GDNativeLibrary
