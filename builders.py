@@ -58,9 +58,9 @@ def build_ssl(env, build_dir, source_dir):
     ]
     if ssl_env["platform"] == "linux":
         if env["bits"] == "32":
-            args.extends(["linux-x86"])
+            args.extend(["linux-x86"])
         else:
-            args.extends(["linux-x86_64"])
+            args.extend(["linux-x86_64"])
     elif ssl_env["platform"] == "android":
         args.extend([
             {
