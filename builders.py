@@ -55,7 +55,12 @@ def build_ssl(env, build_dir, source_dir):
         "no-legacy",
         "--prefix=%s" % install_dir,
     ]
-    if ssl_env["platform"] == "android":
+    if ssl_env["platform"] == "linux":
+        if env["bits"] == "32":
+            args.extends(["linux-x86"])
+        else:
+            args.extends(["linux-x86_64"])
+    elif ssl_env["platform"] == "android":
         args.extend([
             {
                 "arm64v8": "android-arm64",
