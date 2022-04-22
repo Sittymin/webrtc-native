@@ -93,6 +93,7 @@ def build_rtc(env, build_dir, source_dir):
         "-DOPENSSL_USE_STATIC_LIBS=1",
         "-DOPENSSL_ROOT_DIR=%s" % get_ssl_build_dir(env),
         "-DOPENSSL_INCLUDE_DIR=%s" % get_ssl_include_dir(env),
+        "-DOPENSSL_SSL_LIBRARY=ssl",
         "-DOPENSSL_CRYPTO_LIBRARY=crypto",
     ]
     if env["platform"] == "android":
