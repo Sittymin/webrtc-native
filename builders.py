@@ -172,7 +172,7 @@ def build_rtc(env, build_dir, source_dir):
                     "-G 'Unix Makefiles'",
                     "-DCMAKE_C_COMPILER=i686-w64-mingw32-gcc",
                     "-DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++",
-                    "-DCMAKE_SYSTEM_NAME=WindowsStore"
+                    "-DCMAKE_SYSTEM_NAME=Windows",
                 ])
         else:
             if env["use_mingw"]:
