@@ -67,7 +67,6 @@ deps_source_dir = "deps"
 
 # Build libdatachannel dependencies
 deps = env.BuildDeps("build-deps", deps_source_dir)
-env.NoCache(deps)
 
 # Our includes and sources
 env.Append(CPPPATH=["src/"])
@@ -87,8 +86,8 @@ else:
 
 # Make the shared library
 result_name = "webrtc_native.{}.{}.{}{}".format(env["platform"], env["target"], env["arch_suffix"], env["SHLIBSUFFIX"])
+env.Depends(sources, deps)
 library = env.SharedLibrary(target=os.path.join(result_path, result_name), source=sources)
-env.Depends(library, deps)
 Default(library)
 
 # GDNativeLibrary
