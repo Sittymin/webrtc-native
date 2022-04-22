@@ -92,12 +92,12 @@ jobs:
           - platform: windows
             arch: 'x86'
             sconsflags: 'bits=32 use_mingw=yes build_library=no'
-            os: 'windows-2019'
+            os: 'ubuntu-20.04'
             msvc_arch: amd64_x86
           - platform: windows
             arch: 'x64'
             sconsflags: 'bits=64 use_mingw=yes build_library=no'
-            os: 'windows-2019'
+            os: 'ubuntu-20.04'
             msvc_arch: amd64
 
     env:
@@ -111,6 +111,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
+
+      - name: Install Windows build dependencies
+        if: ${{ matrix.platform == 'windows' }}
+        run: |
+          sudo apt-get install build-essential mingw-w64
 
       - name: Install Linux build dependencies
         if: ${{ matrix.platform == 'linux' }}
@@ -132,12 +137,10 @@ jobs:
           cmake --version
 
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - debug
-        shell: bash
         run: |
           scons target=debug generate_bindings=yes godot_version=${GODOT_VERSION}
 
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - release
-        shell: bash
         run: |
           scons target=release godot_version=${GODOT_VERSION}
 
