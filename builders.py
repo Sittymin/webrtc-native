@@ -49,6 +49,7 @@ def build_ssl(env, build_dir, source_dir):
     ssl_env = env.Clone()
     install_dir = get_ssl_install_dir(env)
     args = [
+        "no-shared",
         "no-ssl3",
         "no-weak-ssl-ciphers",
         "no-legacy",
