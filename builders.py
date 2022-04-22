@@ -80,7 +80,16 @@ def build_ssl(env, build_dir, source_dir):
         elif env["macos_arch"] == "arm64":
             args.extend(["darwin64-arm64"])
         else:
-            raise ValueError("OSX architecture not supported: %s" % env["macos_arch"])
+            raise ValueError("macOS architecture not supported: %s" % env["macos_arch"])
+    elif env["platform"] == "ios":
+        if env["ios_arch"] == "arm":
+            args.extend(["ios-xcrun"])
+        elif env["ios_arch"] == "arm64":
+            args.extend(["ios64-xcrun"])
+        elif env["ios_simulator"]:
+            args.extend(["iossimulator-xcrun"])
+        else:
+            raise ValueError("iOS architecture not supported: %s" % env["macos_arch"])
     elif env["platform"] == "windows":
         if env["bits"] == "32":
             if env["use_mingw"]:
@@ -156,12 +165,27 @@ def build_rtc(env, build_dir, source_dir):
                 "-DCMAKE_CXX_FLAGS=-m64"
             ])
     elif env["platform"] == "osx":
+        if env["ios_deployment_target"] != "default":
+            args.extend(["-DCMAKE_OSX_DEPLOYMENT_TARGET=%s" % env["ios_deployment_target"]])
         if env["macos_arch"] == "x86_64":
             args.extend(["-DCMAKE_OSX_ARCHITECTURES=x86_64"])
         elif env["macos_arch"] == "arm64":
             args.extend(["-DCMAKE_OSX_ARCHITECTURES=arm64"])
         else:
             raise ValueError("OSX architecture not supported: %s" % env["macos_arch"])
+    elif env["platform"] == "ios":
+        args.extend([
+            "-DCMAKE_SYSTEM_NAME=iOS",
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0",
+        ])
+        if env["ios_arch"] == "arm":
+            args.extend(["-DCMAKE_OSX_ARCHITECTURES=arm"])
+        elif env["ios_arch"] == "arm64":
+            args.extend(["-DCMAKE_OSX_ARCHITECTURES=arm64"])
+        elif env["ios_simulator"]:
+            args.extend(["iossimulator-xcrun"])
+        else:
+            raise ValueError("iOS architecture not supported: %s" % env["macos_arch"])
     elif env["platform"] == "windows":
         args.extend(["-DOPENSSL_ROOT_DIR=%s" % get_ssl_build_dir(env)])
         if env["use_mingw"]:
