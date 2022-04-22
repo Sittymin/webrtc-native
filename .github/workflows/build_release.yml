@@ -40,22 +40,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-#          # Android
-#          - platform: android
-#            arch: 'x86'
-#            sconsflags: 'android_arch=x86'
-#            os: 'ubuntu-20.04'
-#          - platform: android
-#            arch: 'x64'
-#            sconsflags: 'android_arch=x86_64'
-#            os: 'ubuntu-20.04'
-#          - platform: android
-#            arch: 'arm'
-#            sconsflags: 'android_arch=armv7'
-#            os: 'ubuntu-20.04'
+          # Android
+          - platform: android
+            arch: 'x86'
+            sconsflags: 'android_arch=x86'
+            os: 'ubuntu-20.04'
+          - platform: android
+            arch: 'x64'
+            sconsflags: 'android_arch=x86_64'
+            os: 'ubuntu-20.04'
+          - platform: android
+            arch: 'arm'
+            sconsflags: 'android_arch=armv7'
+            os: 'ubuntu-20.04'
           - platform: android
             arch: 'arm64'
-            sconsflags: 'android_arch=arm64v8 build_library=no'
+            sconsflags: 'android_arch=arm64v8'
             os: 'ubuntu-20.04'
 
 #          # iOS
@@ -67,16 +67,16 @@ jobs:
 #            arch: 'arm64'
 #            sconsflags: 'ios_arch=arm64'
 #            os: 'macos-11'
-#
-#          # Linux
-#          - platform: linux
-#            arch: 'x86'
-#            sconsflags: 'bits=32'
-#            os: 'ubuntu-20.04'
-#          - platform: linux
-#            arch: 'x64'
-#            sconsflags: 'bits=64'
-#            os: 'ubuntu-20.04'
+
+          # Linux
+          - platform: linux
+            arch: 'x86'
+            sconsflags: 'bits=32'
+            os: 'ubuntu-20.04'
+          - platform: linux
+            arch: 'x64'
+            sconsflags: 'bits=64'
+            os: 'ubuntu-20.04'
 
 #          # macOS
 #          - platform: osx
