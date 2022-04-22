@@ -50,12 +50,14 @@ def build_ssl(env, build_dir, source_dir):
     ssl_env = env.Clone()
     install_dir = get_ssl_install_dir(env)
     args = [
-        "no-shared",
         "no-ssl3",
         "no-weak-ssl-ciphers",
         "no-legacy",
         "--prefix=%s" % install_dir,
+        "--openssldir=%s" % install_dir,
     ]
+    if env["platform"] != "windows":
+        args.append("no-shared")  # Windows "app" doesn't like static-only builds.
     if env["platform"] == "linux":
         if env["bits"] == "32":
             args.extend(["linux-x86"])
@@ -79,6 +81,23 @@ def build_ssl(env, build_dir, source_dir):
             args.extend(["darwin64-arm64"])
         else:
             raise ValueError("OSX architecture not supported: %s" % env["macos_arch"])
+    elif env["platform"] == "windows":
+        if env["bits"] == "32":
+            if env["use_mingw"]:
+                args.extend([
+                    "mingw",
+                    "--cross-compile-prefix=i686-w64-mingw32-",
+                ])
+            else:
+                args.extend(["VC-WIN32"])
+        else:
+            if env["use_mingw"]:
+                args.extend([
+                    "mingw64",
+                    "--cross-compile-prefix=x86_64-w64-mingw32-",
+                ])
+            else:
+                args.extend(["VC-WIN64A"])
     configure = ssl_env.Command(get_ssl_build_dir(env) + "/Makefile", "", cfg_cmd + " ".join(args))
     libs = ["libssl.a", "libcrypto.a"]
     ssl_include = os.path.join(source_dir, "include")
@@ -102,7 +121,7 @@ def build_rtc(env, build_dir, source_dir):
         build_dir,
         "-DUSE_NICE=0",
         "-DNO_WEBSOCKET=1",
-        "-DNO_MEDIA=1",
+        #"-DNO_MEDIA=1", # Windows builds fail without it.
         "-DNO_EXAMPLES=1",
         "-DNO_WEBSOCKET=1",
         "-DNO_TESTS=1",
@@ -143,12 +162,33 @@ def build_rtc(env, build_dir, source_dir):
             args.extend(["-DCMAKE_OSX_ARCHITECTURES=arm64"])
         else:
             raise ValueError("OSX architecture not supported: %s" % env["macos_arch"])
+    elif env["platform"] == "windows":
+        args.extend(["-DOPENSSL_ROOT_DIR=%s" % get_ssl_build_dir(env)])
+        if env["use_mingw"]:
+            env.Append(LIBS=["iphlpapi", "ws2_32", "bcrypt"])
+        if env["bits"] == "32":
+            if env["use_mingw"]:
+                args.extend([
+                    "-G 'Unix Makefiles'",
+                    "-DCMAKE_C_COMPILER=i686-w64-mingw32-gcc",
+                    "-DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++",
+                    "-DCMAKE_SYSTEM_NAME=Windows"
+                ])
+        else:
+            if env["use_mingw"]:
+                args.extend([
+                    "-G 'Unix Makefiles'",
+                    "-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc",
+                    "-DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++",
+                    "-DCMAKE_SYSTEM_NAME=Windows"
+                ])
 
     args.append(source_dir)
-    libs = ["datachannel-static", "libjuice-static", "usrsctp"]
+    libs = ["datachannel-static", "libjuice-static", "libsrtp2", "usrsctp"]
     lib_paths = [
         build_dir,
         os.path.join(build_dir, "deps/libjuice"),
+        os.path.join(build_dir, "deps/libsrtp"),
         os.path.join(build_dir, "deps/usrsctp/usrsctplib"),
     ]
     env.Append(LIBPATH=lib_paths)
