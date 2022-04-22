@@ -119,6 +119,17 @@ def build_rtc(env, build_dir, source_dir):
             "-DCMAKE_ANDROID_NDK='%s'" % env["ANDROID_NDK_ROOT"],
             "-DCMAKE_ANDROID_STL_TYPE=c++_static",
         ])
+    elif env["platform"] == "linux":
+        if env["bits"] == "32":
+            args.extend([
+                "-DCMAKE_C_FLAGS=-m32",
+                "-DCMAKE_CXX_FLAGS=-m32"
+            ])
+        else:
+            args.extend([
+                "-DCMAKE_C_FLAGS=-m64",
+                "-DCMAKE_CXX_FLAGS=-m64"
+            ])
     args.append(source_dir)
     libs = ["datachannel-static", "libjuice-static", "usrsctp"]
     lib_paths = [
