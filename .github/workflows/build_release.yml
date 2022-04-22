@@ -115,14 +115,15 @@ jobs:
       - name: Install Windows build dependencies
         if: ${{ matrix.platform == 'windows' }}
         run: |
-          sudo apt-get install build-essential mingw-w64
+          sudo apt-get update
+          sudo apt-get install build-essential mingw-w64 gcc-multilib g++-multilib
           dpkg -l | grep ii | grep mingw
           update-alternatives --get-selections | grep mingw
 
       - name: Install Linux build dependencies
         if: ${{ matrix.platform == 'linux' }}
         run: |
-          sudo apt-get install build-essential gcc-multilib wget g++-multilib
+          sudo apt-get install build-essential gcc-multilib g++-multilib
 
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
