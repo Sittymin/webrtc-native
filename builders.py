@@ -56,22 +56,29 @@ def build_ssl(env, build_dir, source_dir):
         "no-legacy",
         "--prefix=%s" % install_dir,
     ]
-    if ssl_env["platform"] == "linux":
+    if env["platform"] == "linux":
         if env["bits"] == "32":
             args.extend(["linux-x86"])
         else:
             args.extend(["linux-x86_64"])
-    elif ssl_env["platform"] == "android":
+    elif env["platform"] == "android":
         args.extend([
             {
                 "arm64v8": "android-arm64",
                 "armv7": "android-arm",
                 "x86": "android-x86",
                 "x86_64": "android-x86_64",
-            }[ssl_env["android_arch"]],
-            "-D__ANDROID_API__=%s" % get_android_api(ssl_env),
+            }[env["android_arch"]],
+            "-D__ANDROID_API__=%s" % get_android_api(env),
         ])
-        ssl_env["ENV"]["ANDROID_NDK_ROOT"] = ssl_env["ANDROID_NDK_ROOT"]
+        ssl_env["ENV"]["ANDROID_NDK_ROOT"] = env["ANDROID_NDK_ROOT"]
+    elif env["platform"] == "osx":
+        if env["macos_arch"] == "x86_64":
+            args.extend(["darwin64-x86_64"])
+        elif env["macos_arch"] == "arm64":
+            args.extend(["darwin64-arm64"])
+        else:
+            raise ValueError("OSX architecture not supported: %s" % env["macos_arch"])
     configure = ssl_env.Command(get_ssl_build_dir(env) + "/Makefile", "", cfg_cmd + " ".join(args))
     libs = ["libssl.a", "libcrypto.a"]
     ssl_include = os.path.join(source_dir, "include")
@@ -130,6 +137,14 @@ def build_rtc(env, build_dir, source_dir):
                 "-DCMAKE_C_FLAGS=-m64",
                 "-DCMAKE_CXX_FLAGS=-m64"
             ])
+    elif env["platform"] == "osx":
+        if env["macos_arch"] == "x86_64":
+            args.extend(["-DCMAKE_OSX_ARCHITECTURES=x86_64"])
+        elif env["macos_arch"] == "arm64":
+            args.extend(["-DCMAKE_OSX_ARCHITECTURES=arm64"])
+        else:
+            raise ValueError("OSX architecture not supported: %s" % env["macos_arch"])
+
     args.append(source_dir)
     libs = ["datachannel-static", "libjuice-static", "usrsctp"]
     lib_paths = [
