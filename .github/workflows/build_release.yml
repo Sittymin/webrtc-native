@@ -68,16 +68,16 @@ jobs:
 #            sconsflags: 'ios_arch=arm64'
 #            os: 'macos-11'
 #
-#          # Linux
-#          - platform: linux
-#            arch: 'x86'
-#            sconsflags: 'bits=32 use_llvm=yes'
-#            os: 'ubuntu-20.04'
-#          - platform: linux
-#            arch: 'x64'
-#            sconsflags: 'bits=64 use_llvm=yes'
-#            os: 'ubuntu-20.04'
-#
+          # Linux
+          - platform: linux
+            arch: 'x86'
+            sconsflags: 'bits=32'
+            os: 'ubuntu-20.04'
+          - platform: linux
+            arch: 'x64'
+            sconsflags: 'bits=64'
+            os: 'ubuntu-20.04'
+
 #          # macOS
 #          - platform: osx
 #            arch: 'x64'
@@ -134,20 +134,6 @@ jobs:
           python -m pip install scons
           python --version
           scons --version
-
-      - name: Get WebRTC package for ${{ matrix.platform }} - ${{ matrix.arch }}
-        uses: ./.github/actions/webrtc-download
-        with:
-          platform: ${{ matrix.platform }}
-          archs: ${{ matrix.arch }}
-
-      - name: Fix godot-cpp for Godot 4.
-        shell: bash
-        run: |
-          if [ "${GODOT_VERSION}" != "3" ]; then
-              cd ${GODOT_CPP}
-              patch -p1 < ../misc/patches/scons.diff
-          fi
 
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - debug
         run: |
