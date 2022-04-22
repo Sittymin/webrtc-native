@@ -92,12 +92,12 @@ jobs:
           - platform: windows
             arch: 'x86'
             sconsflags: 'bits=32 use_mingw=yes build_library=no'
-            os: 'ubuntu-20.04'
+            os: 'windows-2019'
             msvc_arch: amd64_x86
           - platform: windows
             arch: 'x64'
             sconsflags: 'bits=64 use_mingw=yes build_library=no'
-            os: 'ubuntu-20.04'
+            os: 'windows-2019'
             msvc_arch: amd64
 
     env:
