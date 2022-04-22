@@ -102,7 +102,6 @@ jobs:
 
     env:
       SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} --jobs=2
-      MSVC_VARS: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat'
 
     defaults:
       run:
@@ -112,10 +111,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-
-      - name: Setup MSVC build environment for ${{ matrix.msvc_arch }}
-        if: ${{ matrix.platform == 'windows' }}
-        run: "'${{ env.MSVC_VARS }}' ${{ matrix.msvc_arch }}"
 
       - name: Install Linux build dependencies
         if: ${{ matrix.platform == 'linux' }}
