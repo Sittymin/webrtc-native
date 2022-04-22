@@ -132,10 +132,12 @@ jobs:
           cmake --version
 
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - debug
+        shell: bash
         run: |
           scons target=debug generate_bindings=yes godot_version=${GODOT_VERSION}
 
       - name: Compilation ${{ matrix.platform }} - ${{ matrix.arch }} - release
+        shell: bash
         run: |
           scons target=release godot_version=${GODOT_VERSION}
 
