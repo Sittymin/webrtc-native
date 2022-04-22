@@ -107,7 +107,6 @@ def build_rtc(env, build_dir, source_dir):
         "-DNO_WEBSOCKET=1",
         "-DNO_TESTS=1",
         "-DOPENSSL_USE_STATIC_LIBS=1",
-        "-DOPENSSL_ROOT_DIR=%s" % get_ssl_build_dir(env),
         "-DOPENSSL_INCLUDE_DIR=%s" % get_ssl_include_dir(env),
         "-DOPENSSL_SSL_LIBRARY=%s/libssl.a" % get_ssl_build_dir(env),
         "-DOPENSSL_CRYPTO_LIBRARY=%s/libcrypto.a" % get_ssl_build_dir(env),
