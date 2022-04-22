@@ -52,8 +52,12 @@ extern "C" {
 GDNativeBool GDN_EXPORT webrtc_extension_init(const GDNativeInterface *p_interface, const GDNativeExtensionClassLibraryPtr p_library, GDNativeInitialization *r_initialization) {
 	GDExtensionBinding::InitObject init_obj(p_interface, p_library, r_initialization);
 
-	init_obj.register_module_initializer(register_webrtc_extension_types);
-	init_obj.register_module_terminator(unregister_webrtc_extension_types);
+	// Just so we can test building in CI,
+	init_obj.register_scene_initializer(register_webrtc_extension_types);
+	init_obj.register_scene_terminator(unregister_webrtc_extension_types);
+	// This is correct, but require ext branch.
+	//init_obj.register_module_initializer(register_webrtc_extension_types);
+	//init_obj.register_module_terminator(unregister_webrtc_extension_types);
 
 	return init_obj.init();
 }
