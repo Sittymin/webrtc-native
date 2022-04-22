@@ -38,8 +38,8 @@ def build_deps(env, target, sources):
 
     rtc_source_dir = os.path.join(source_dir, "libdatachannel")
     rtc_build_dir = os.path.join(build_dir, "libdatachannel")
+    env.Depends(rtc_build_dir, ssl)
     rtc = build_rtc(env, rtc_build_dir, rtc_source_dir)
-    env.Depends(rtc, ssl)
 
     return ssl + rtc
 
@@ -81,6 +81,7 @@ def build_ssl(env, build_dir, source_dir):
     make = ssl_env.Command("open_ssl_make", configure, "make -C %s -j%s" % (build_dir, jobs))
     install = ssl_env.Command("open_ssl_install", make, "make -C %s install_sw install_ssldirs -j%s" % (build_dir, jobs))
     copy = ssl_env.Command("open_ssl_include", install, "cp -r %s/include/* %s/include/" % (install_dir, build_dir))
+    env.Depends(libs, copy)
     return [configure, make, install, copy]
 
 
