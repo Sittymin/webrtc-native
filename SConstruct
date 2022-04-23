@@ -54,6 +54,13 @@ else:
     env = SConscript("godot-cpp/SConstruct").Clone()
 opts.Update(env)
 
+# TODO Should upstream this as an option.
+if env["platform"] == "ios":
+    if env["ios_simulator"]:
+        env.Append(CCFLAGS=["-mios-simulator-version-min=11.0"])
+    else:
+        env.Append(CCFLAGS=["-miphoneos-version-min=11.0"])
+
 # Add method that joins/compiles our Engine files.
 env.AddMethod(build_deps, "BuildDeps")
 # Add method to generated gdnative lib
