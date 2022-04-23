@@ -82,12 +82,12 @@ def build_ssl(env, build_dir, source_dir):
         else:
             raise ValueError("macOS architecture not supported: %s" % env["macos_arch"])
     elif env["platform"] == "ios":
-        if env["ios_arch"] == "arm":
+        if env["ios_simulator"]:
+                args.extend(["iossimulator-xcrun"])
+        elif env["ios_arch"] == "arm":
             args.extend(["ios-xcrun"])
         elif env["ios_arch"] == "arm64":
             args.extend(["ios64-xcrun"])
-        elif env["ios_simulator"]:
-            args.extend(["iossimulator-xcrun"])
         else:
             raise ValueError("iOS architecture not supported: %s" % env["macos_arch"])
     elif env["platform"] == "windows":
@@ -174,18 +174,15 @@ def build_rtc(env, build_dir, source_dir):
         else:
             raise ValueError("OSX architecture not supported: %s" % env["macos_arch"])
     elif env["platform"] == "ios":
+        if env["ios_arch"] == "universal":
+            raise ValueError("iOS architecture not supported: %s" % env["macos_arch"])
         args.extend([
             "-DCMAKE_SYSTEM_NAME=iOS",
             "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0",
+            "-DCMAKE_OSX_ARCHITECTURES=%s" % env["ios_arch"],
         ])
-        if env["ios_arch"] == "arm":
-            args.extend(["-DCMAKE_OSX_ARCHITECTURES=arm"])
-        elif env["ios_arch"] == "arm64":
-            args.extend(["-DCMAKE_OSX_ARCHITECTURES=arm64"])
-        elif env["ios_simulator"]:
-            args.extend(["iossimulator-xcrun"])
-        else:
-            raise ValueError("iOS architecture not supported: %s" % env["macos_arch"])
+        if env["ios_simulator"]:
+                args.extend(["-DCMAKE_OSX_SYSROOT=iphonesimulator"])
     elif env["platform"] == "windows":
         args.extend(["-DOPENSSL_ROOT_DIR=%s" % get_ssl_build_dir(env)])
         if env["use_mingw"]:
