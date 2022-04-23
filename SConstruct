@@ -60,6 +60,8 @@ if env["platform"] == "ios":
         env.Append(CCFLAGS=["-mios-simulator-version-min=11.0"])
     else:
         env.Append(CCFLAGS=["-miphoneos-version-min=11.0"])
+elif env["platform"] == "windows" and env["use_mingw"]:
+    env["SHLIBSUFFIX"] = ".dll"
 
 # Add method that joins/compiles our Engine files.
 env.AddMethod(build_deps, "BuildDeps")
