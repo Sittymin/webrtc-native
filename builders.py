@@ -46,7 +46,6 @@ def build_deps(env, target, sources):
 
 
 def build_ssl(env, build_dir, source_dir):
-    cfg_cmd = "mkdir -p %s && cd %s && %s/Configure " % (build_dir, build_dir, source_dir)
     ssl_env = env.Clone()
     install_dir = get_ssl_install_dir(env)
     args = [
@@ -107,18 +106,18 @@ def build_ssl(env, build_dir, source_dir):
                 ])
             else:
                 args.extend(["VC-WIN64A"])
-    configure = ssl_env.Command(get_ssl_build_dir(env) + "/Makefile", "", cfg_cmd + " ".join(args))
+    cfg_cmd = "mkdir -p %s && cd %s && %s/Configure " % (build_dir, build_dir, source_dir)
+    configure = ssl_env.Command(get_ssl_build_dir(env) + "/configdata.pm", "", cfg_cmd + " ".join(args))
     libs = ["libssl.a", "libcrypto.a"]
     ssl_include = os.path.join(source_dir, "include")
+    jobs = env.GetOption("num_jobs")
+    make = ssl_env.Command([build_dir + "/" + l for l in libs], configure, "make -C %s -j%s" % (build_dir, jobs))
+    make_install = ssl_env.Command([install_dir, ssl_include], make, 'make -C %s install_sw install_ssldirs -j%s' % (build_dir, jobs))
+
     env.Prepend(CPPPATH=[get_ssl_include_dir(env)])
     env.Prepend(LIBPATH=[get_ssl_build_dir(env)])
     env.Append(LIBS=libs)
-    jobs = env.GetOption("num_jobs")
-    make = ssl_env.Command(libs, configure,
-            "make -C %s -j%s && make -C %s install_sw install_ssldirs -j%s && cp -r %s/include/* %s/include/" % (
-                build_dir, jobs, build_dir, jobs, install_dir, build_dir
-        ))
-    return [configure, make]
+    return [configure, make, make_install]
 
 
 def build_rtc(env, build_dir, source_dir):
@@ -205,7 +204,7 @@ def build_rtc(env, build_dir, source_dir):
                 ])
 
     args.append(source_dir)
-    libs = ["datachannel-static", "libjuice-static", "libsrtp2", "usrsctp"]
+    libs = ["libdatachannel-static.a", "libjuice-static.a", "libsrtp2.a", "libusrsctp.a"]
     lib_paths = [
         build_dir,
         os.path.join(build_dir, "deps/libjuice"),
@@ -214,7 +213,7 @@ def build_rtc(env, build_dir, source_dir):
     ]
     env.Append(LIBPATH=lib_paths)
     env.Prepend(LIBS=libs)
-    cmake = env.Command(build_dir, "", "cmake " + " ".join(args))
+    cmake = env.Command(build_dir + "/Makefile", "", "cmake " + " ".join(args))
     jobs = env.GetOption("num_jobs")
-    make = env.Command(libs, cmake, "make -C %s datachannel-static -j%s" % (build_dir, jobs))
+    make = env.Command([lib_paths[i] + "/" + libs[i] for i in range(len(libs))], cmake, "make -C %s datachannel-static -j%s" % (build_dir, jobs))
     return [cmake, make]
