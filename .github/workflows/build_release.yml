@@ -61,12 +61,13 @@ jobs:
           # iOS
           - platform: ios
             arch: 'x64'
-            sconsflags: 'ios_arch=x86_64 ios_simulator=true build_library=no'
+            sconsflags: 'ios_arch=x86_64 ios_simulator=true'
             os: 'macos-latest'
           - platform: ios
             arch: 'arm64'
-            sconsflags: 'ios_arch=arm64 build_library=no'
+            sconsflags: 'ios_arch=arm64'
             os: 'macos-11'
+
 #
 #          # Linux
 #          - platform: linux
