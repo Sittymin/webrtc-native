@@ -2,8 +2,7 @@ name: 🔧 Build -> Package 📦
 on: [push, pull_request]
 
 env:
-  GODOT_VERSION: '4'
-  GODOT_CPP: 'godot-cpp'
+  GODOT_VERSION: '3'
 
 jobs:
   static-checks:
