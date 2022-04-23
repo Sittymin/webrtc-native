@@ -165,8 +165,8 @@ def build_rtc(env, build_dir, source_dir):
                 "-DCMAKE_CXX_FLAGS=-m64"
             ])
     elif env["platform"] == "osx":
-        if env["ios_deployment_target"] != "default":
-            args.extend(["-DCMAKE_OSX_DEPLOYMENT_TARGET=%s" % env["ios_deployment_target"]])
+        if env["macos_deployment_target"] != "default":
+            args.extend(["-DCMAKE_OSX_DEPLOYMENT_TARGET=%s" % env["macos_deployment_target"]])
         if env["macos_arch"] == "x86_64":
             args.extend(["-DCMAKE_OSX_ARCHITECTURES=x86_64"])
         elif env["macos_arch"] == "arm64":
