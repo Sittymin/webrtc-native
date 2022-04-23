@@ -58,16 +58,16 @@ jobs:
 #            sconsflags: 'android_arch=arm64v8'
 #            os: 'ubuntu-20.04'
 #
-          # iOS
-          - platform: ios
-            arch: 'x64'
-            sconsflags: 'ios_arch=x86_64 ios_simulator=true'
-            os: 'macos-latest'
-          - platform: ios
-            arch: 'arm64'
-            sconsflags: 'ios_arch=arm64'
-            os: 'macos-11'
-
+#          # iOS
+#          - platform: ios
+#            arch: 'x64'
+#            sconsflags: 'ios_arch=x86_64 ios_simulator=true'
+#            os: 'macos-latest'
+#          - platform: ios
+#            arch: 'arm64'
+#            sconsflags: 'ios_arch=arm64'
+#            os: 'macos-11'
+#
 #
 #          # Linux
 #          - platform: linux
@@ -89,17 +89,17 @@ jobs:
 #            sconsflags: 'bits=64 macos_arch=arm64'
 #            os: 'macos-11'
 #
-#          # Windows
-#          - platform: windows
-#            arch: 'x86'
-#            sconsflags: 'bits=32 use_mingw=yes build_library=no'
-#            os: 'ubuntu-20.04'
-#            msvc_arch: amd64_x86
-#          - platform: windows
-#            arch: 'x64'
-#            sconsflags: 'bits=64 use_mingw=yes build_library=no'
-#            os: 'ubuntu-20.04'
-#            msvc_arch: amd64
+          # Windows
+          - platform: windows
+            arch: 'x86'
+            sconsflags: 'bits=32 use_mingw=yes build_library=no'
+            os: 'ubuntu-20.04'
+            msvc_arch: amd64_x86
+          - platform: windows
+            arch: 'x64'
+            sconsflags: 'bits=64 use_mingw=yes build_library=no'
+            os: 'ubuntu-20.04'
+            msvc_arch: amd64
 
     env:
       SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} --jobs=2
@@ -117,7 +117,11 @@ jobs:
         if: ${{ matrix.platform == 'windows' }}
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential mingw-w64 gcc-multilib g++-multilib
+          sudo apt-get install build-essential mingw-w64
+          sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-posix
+          sudo update-alternatives --set i686-w64-mingw32-g++ /usr/bin/i686-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
           dpkg -l | grep ii | grep mingw
           update-alternatives --get-selections | grep mingw
 
