@@ -137,7 +137,7 @@ bool WebRTCLibDataChannel::_is_ordered() const {
 
 int64_t WebRTCLibDataChannel::_get_id() const {
 	ERR_FAIL_COND_V(!channel, -1);
-	return channel->id();
+	return channel->id().value_or(-1);
 }
 
 int64_t WebRTCLibDataChannel::_get_max_packet_life_time() const {
