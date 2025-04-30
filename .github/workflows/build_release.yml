@@ -50,13 +50,13 @@ jobs:
             arch: 'x86_64'
             gdnative_flags: 'android_arch=x86_64'
             sconsflags: ''
-            os: 'ubuntu-20.04'
+            os: 'ubuntu-22.04'
             cache-name: android-x86_64
           - platform: android
             arch: 'arm64'
             gdnative_flags: 'android_arch=arm64v8'
             sconsflags: ''
-            os: 'ubuntu-20.04'
+            os: 'ubuntu-22.04'
             cache-name: android-arm64
 
           # iOS
@@ -79,14 +79,14 @@ jobs:
             buildroot: 'i686'
             gdnative_flags: 'bits=32'
             sconsflags: ''
-            os: 'ubuntu-20.04'
+            os: 'ubuntu-22.04'
             cache-name: linux-x86_32
           - platform: linux
             arch: 'x86_64'
             buildroot: 'x86_64'
             gdnative_flags: 'bits=64'
             sconsflags: ''
-            os: 'ubuntu-20.04'
+            os: 'ubuntu-22.04'
             cache-name: linux-x86_64
 
           # macOS
@@ -102,14 +102,14 @@ jobs:
             arch: 'x86_32'
             gdnative_flags: 'bits=32'
             sconsflags: 'use_mingw=yes'
-            os: 'ubuntu-20.04'
+            os: 'ubuntu-22.04'
             msvc_arch: amd64_x86
             cache-name: win-x86_32
           - platform: windows
             arch: 'x86_64'
             gdnative_flags: 'bits=64'
             sconsflags: 'use_mingw=yes'
-            os: 'ubuntu-20.04'
+            os: 'ubuntu-22.04'
             msvc_arch: amd64
             cache-name: win-x86_64
 
